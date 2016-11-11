@@ -17,7 +17,7 @@ if __name__ == "__main__":
     list_ingredients()
     print("Checking In")
     while(1):
-        upc = input('Please Scan UPC:')
+        upc = raw_input('Please Scan UPC:')
         if(upc == "01"):
             in_out = 1
             print("Checking In")
