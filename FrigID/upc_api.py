@@ -6,7 +6,6 @@ api_url = "http://eandata.com/feed/?v=3&keycode={}&mode=json&find=".format(API_K
 
 def get_product_name(upc):
     try:
-        print(api_url+upc)
         r = requests.get(api_url + upc)
         json = r.json()
         if json['status']['code'] == '200':
