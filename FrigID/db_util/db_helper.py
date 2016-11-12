@@ -52,3 +52,13 @@ def get_first_inventory(upc):
     cmd = "SELECT id FROM inventory WHERE grocery_id = ? ORDER BY date_purchased LIMIT 1"
     rtVal = do_command(cmd, [grocery['id']])
     return rtVal[0]['id']
+
+def get_current_inventory():
+    cmd = """SELECT upc,
+                    count(inventory.id) AS count
+             FROM grocery
+             LEFT JOIN inventory  ON inventory.grocery_id = grocery.id
+             GROUP BY grocery.id
+             ORDER BY grocery.id"""
+    rtVal = do_command(cmd)
+    return rtVal
