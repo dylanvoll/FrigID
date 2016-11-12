@@ -4,7 +4,7 @@ from upc_api import get_product_name
 def check_in(upc):
     if db_helper.grocery_exists(upc):
         groceryId = db_helper.get_grocery_by_upc(upc)
-        db_helper.add_grocery_to_inventory(groceryId[0]['id'])
+        db_helper.add_grocery_to_inventory(groceryId['id'])
     else:
         name = get_product_name(upc)
         groceryId = db_helper.grocery_input(upc, name)
