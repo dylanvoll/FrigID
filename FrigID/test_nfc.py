@@ -10,34 +10,46 @@ from db_util import db
 clf = None
 continue_reading = True
 
+
 def end_read(signal, frame):
     print("Terminating")
     global continue_reading
     continue_reading = False
     sys.exit()
-    
 
 signal.signal(signal.SIGINT, end_read)
 
+
 def connected(tag):
-    print(tag)
-    currentRecord = None
-    
-    if tag.ndef:
-        if tag.ndef.length > 0:
-            print("Current Message:")
-            print(tag.ndef.message.pretty())
+    print("Tag: {}\n".format(tag))
+
+    if tag.ndef.is_readable:
+        if tag.ndef is not None:
+            if tag.ndef.length > 0:
+                records = tag.ndef.message[0]
+                if records.type == "urn:nfc:wkt:T":
+                    currentText = nfc.ndef.TextRecord(records)
+                    print("Current Text:")
+                    print(currentText.text)
+                else:
+                    print("No text record found")
+            else:
+                print("Empty Card")
         else:
-            print("Empty Card")
+            print("No NDEF Maybe format?")
+    else:
+        print("Card not readable")
 
     textRecord = nfc_helper.get_inventory_ndef()
 
     print("New Record:")
-    print(textRecord.pretty())
-    
-    if tag.ndef is not None:
+    print(textRecord.text)
+
+    if tag.ndef.is_writeable:
         tag.ndef.message = nfc.ndef.Message(textRecord)
+
     return True
+
 
 def pollNFC():
     try:
@@ -63,6 +75,6 @@ def pollNFC():
 if __name__ == "__main__":
 
     print('starting')
-    
+
     while continue_reading:
         pollNFC()
