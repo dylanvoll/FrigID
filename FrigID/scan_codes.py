@@ -1,20 +1,10 @@
-from collections import Counter
 from db_util import db
-from grocery_helper import check_in, check_out
-
-def list_ingredients():
-	upc_file = open('UPCcodes.txt', 'r')
-	lines = []
-	for line in upc_file:
-		lines.append(line)
-	print(Counter(lines))
-
+from frigid_util import ingredient
 
 if __name__ == "__main__":
     dbConn = db.get_connection()
     upc= ""
     in_out = 1
-    list_ingredients()
     print("Checking In")
     while(1):
         upc = raw_input('Please Scan UPC:')
@@ -29,7 +19,9 @@ if __name__ == "__main__":
         else:
             print(in_out)
             if(in_out == 1):
-                check_in(upc)
+                item = ingredient.Ingredient(upc)
+                item.check_in()
             if(in_out == 2):
-                check_out(upc)
+                item = ingredient.Ingredient(upc)
+                item.check_out()
 

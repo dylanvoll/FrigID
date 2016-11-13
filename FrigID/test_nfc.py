@@ -1,11 +1,10 @@
-import nfc
 import errno
 import signal
 import sys
 
-import nfc_helper
+import nfc
 
-from db_util import db
+from nfc_util import nfc_helper
 
 clf = None
 continue_reading = True
