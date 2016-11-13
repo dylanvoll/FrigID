@@ -8,3 +8,19 @@ def get_inventory_ndef():
     textRecord = nfc.ndef.TextRecord(list)
 
     return textRecord
+
+
+def parse_list(list):
+    split = list.split('\n')
+    set = []
+    count = 0
+
+    for item in split:
+        if item != '':
+            subsplit = item.split(" ")
+            set.append({
+                'upc': subsplit[0],
+                'count': subsplit[1]
+            })
+
+    return set
