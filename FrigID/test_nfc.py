@@ -3,8 +3,9 @@ import errno
 import signal
 import sys
 
-from db_util import db
+import nfc_helper
 
+from db_util import db
 
 clf = None
 continue_reading = True
@@ -20,15 +21,22 @@ signal.signal(signal.SIGINT, end_read)
 
 def connected(tag):
     print(tag)
+    currentRecord = None
+    
     if tag.ndef:
-        print("NDEF Capabilities:")
-        print("  readable  = %s" % ("no","yes")[tag.ndef.is_readable])
-        print("  writeable = %s" % ("no","yes")[tag.ndef.is_writeable])
-        print("  capacity  = %d byte" % tag.ndef.capacity)
-        print("  message   = %d byte" % tag.ndef.length)
         if tag.ndef.length > 0:
-            print("NDEF Message:")
+            print("Current Message:")
             print(tag.ndef.message.pretty())
+        else:
+            print("Empty Card")
+
+    textRecord = nfc_helper.get_inventory_ndef()
+
+    print("New Record:")
+    print(textRecord.pretty())
+    
+    if tag.ndef is not None:
+        tag.ndef.message = nfc.ndef.Message(textRecord)
     return True
 
 def pollNFC():
