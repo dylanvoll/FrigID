@@ -20,7 +20,7 @@ class Ingredient(object):
         if not inventory_db_helper.exists_in_inventory(self.upc):
             return
         else:
-            grocery_db_helper.checkout_grocery(self.upc)
+            inventory_db_helper.checkout_grocery(self.upc)
 
     def __get_name(self, upc):
         resultDict = grocery_db_helper.get_grocery(upc)

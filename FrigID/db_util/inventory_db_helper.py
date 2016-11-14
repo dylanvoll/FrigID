@@ -1,5 +1,5 @@
 from db import do_insert, do_command_no_return, do_command
-
+from grocery_db_helper import get_grocery_id
 
 def exists_in_inventory(upc):
     cmd = "SELECT * FROM grocery WHERE upc = ?"
@@ -15,7 +15,7 @@ def exists_in_inventory(upc):
 
 
 def get_first_inventory(upc):
-    grocery = get_grocery(upc)
+    grocery = get_grocery_id(upc)
     cmd = "SELECT id FROM inventory WHERE grocery_id = ? ORDER BY date_purchased LIMIT 1"
     rtVal = do_command(cmd, [grocery['id']])
 
@@ -41,3 +41,9 @@ def add_grocery_to_inventory(groceryId):
     rtVal = do_insert(cmd, [groceryId])
 
     return rtVal
+
+
+def checkout_grocery(upc):
+    id = get_first_inventory(upc)
+    cmd = "DELETE FROM inventory WHERE id = ?"
+    do_command_no_return(cmd, [id])
