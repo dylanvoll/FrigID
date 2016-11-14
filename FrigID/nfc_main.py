@@ -71,6 +71,10 @@ def pollNFC():
         clf.close()
 
 
+def nfcLoop():
+    while continue_reading:
+        pollNFC()
+
 if __name__ == "__main__":
 
     print('starting')

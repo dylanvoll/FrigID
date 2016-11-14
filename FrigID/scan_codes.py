@@ -1,7 +1,9 @@
 from db_util import db
 from frigid_util import ingredient
+import multiprocessing
+import nfc_main
 
-if __name__ == "__main__":
+def upcLoop():
     dbConn = db.get_connection()
     upc= ""
     in_out = 1
@@ -25,3 +27,11 @@ if __name__ == "__main__":
                 item = ingredient.Ingredient(upc)
                 item.check_out()
 
+
+if __name__ == "__main__":
+    jobs = []
+    p = multiprocessing.Process(target=nfc_main.nfcLoop)
+    p2 = multiprocessing.Process(target=upcLoop)
+    jobs.append(p)
+    p.start()
+    upcLoop()
