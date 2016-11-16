@@ -7,11 +7,16 @@ import android.nfc.Tag;
 import android.nfc.tech.Ndef;
 import android.nfc.tech.NdefFormatable;
 import android.os.AsyncTask;
+import android.support.v7.app.AppCompatActivity;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
@@ -21,9 +26,11 @@ import java.util.Arrays;
 public class NFC_Utility {
 
     public final Context context;
+    Main_Activity activity;
 
-    public NFC_Utility(Context context){
+    public NFC_Utility(Context context, Main_Activity activity){
         this.context = context;
+        this.activity = activity;
     }
 
     class NdefReaderTask extends AsyncTask<Tag, Void, String> {
@@ -35,6 +42,7 @@ public class NFC_Utility {
             tag = params[0];
 
             Ndef ndef = Ndef.get(tag);
+            String ndefString = null;
             if (ndef == null) {
                 // NDEF is not supported by this Tag.
                 return null;
@@ -47,6 +55,7 @@ public class NFC_Utility {
                 if (ndefRecord.getTnf() == NdefRecord.TNF_WELL_KNOWN && Arrays.equals(ndefRecord.getType(), NdefRecord.RTD_TEXT)) {
                     try {
                         return readText(ndefRecord);
+
                     } catch (UnsupportedEncodingException e) {
 
                     }
@@ -69,15 +78,56 @@ public class NFC_Utility {
             String languageCode = new String(payload, 1, languageCodeLength, "US-ASCII");
             // e.g. "en"
 
-            // Get the Text
             return new String(payload, languageCodeLength + 1, payload.length - languageCodeLength - 1, textEncoding);
         }
 
         @Override
         protected void onPostExecute(String result) {
-            if (result != null) {
-                Toast.makeText(context,result,Toast.LENGTH_SHORT).show();
+            Main_Activity.ndefString = result;
+            new upcToIngredients(result).execute();
+        }
+    }
+
+    class upcToIngredients extends AsyncTask<String, Void, String> {
+
+        String ndefString;
+        ArrayList<Ingredient> inventory = new ArrayList<>();
+        ArrayList<Ingredient> groceries = new ArrayList<>();
+        UPC_Api_Utility api = new UPC_Api_Utility(context);
+
+        public upcToIngredients(String ndefString){
+            this.ndefString = ndefString;
+        }
+
+        @Override
+        protected String doInBackground(String... params) {
+
+            System.out.println("Starting network");
+
+            String[] upcs = ndefString.split("\\n");
+            for(String upcLine : upcs){
+                String upc = upcLine.split(" ")[0];
+                int quantity = Integer.parseInt(upcLine.split(" ")[1]);
+                String longName = api.getNameFromUpc(upc);
+                if(quantity == 0){
+                    groceries.add(new Ingredient(upc,quantity,null,longName));
+                }
+                else{
+                    inventory.add(new Ingredient(upc,quantity,null,longName));
+                }
             }
+
+            return "Finished";
+        }
+
+
+        @Override
+        protected void onPostExecute(String result) {
+            activity.inventory = inventory;
+            activity.groceries = groceries;
+            activity.loadUI();
+            System.out.println("Loading UI");
+
         }
     }
 
@@ -189,5 +239,18 @@ public class NFC_Utility {
         }
         System.out.println(new String(record.getPayload()));
         return new NdefMessage(record);
+    }
+
+    public void ndefToFile(String ndefString){
+        try {
+            File file = new File(context.getExternalCacheDir().getPath()+"/frigid.txt");
+            file.createNewFile(); // if file already exists will do nothing
+            FileOutputStream oFile = new FileOutputStream(file, false);
+            PrintWriter out = new PrintWriter(file);
+            out.println(ndefString);
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
     }
 }

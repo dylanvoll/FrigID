@@ -1,50 +1,68 @@
 package com.frigid;
 
+import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.PendingIntent;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
+import android.nfc.tech.Ndef;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.os.Parcelable;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Html;
-import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.ViewConfiguration;
+import android.view.ViewTreeObserver;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
-import android.widget.ListAdapter;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TabHost;
 import android.widget.Toast;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class Main_Activity extends AppCompatActivity {
 
-    ArrayList<String> inventory = new ArrayList<String>(Arrays.asList("Lettuce","Milk","Tomatoes","Cheese","Lettuce","Milk","Tomatoes","Cheese","Lettuce","Milk","Tomatoes","Cheese"));
-    ArrayList<String> groceries = new ArrayList<String>(Arrays.asList("Limes","Bananas","Flour","Hot Sauce","Limes","Bananas","Flour","Hot Sauce","Limes","Bananas","Flour","Hot Sauce"));
+    ArrayList<Ingredient> inventory = new ArrayList<>();
+    ArrayList<Ingredient> groceries = new ArrayList<>();
     ListView inventoryList;
     ListView groceriesList;
-
+    IngredientArrayAdapter inventoryAdapter;
+    IngredientArrayAdapter groceryListAdapter;
+    private NfcAdapter mNfcAdapter;
+    private NFC_Utility nfc_util;
+    IngredientArrayAdapter mAdapter;
+    ListView mListView;
+    public static String ndefString = "";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
+        mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
+        nfc_util = new NFC_Utility(getApplicationContext(),this);
         // create the TabHost that will contain the Tabs
         final TabHost tabHost = (TabHost)findViewById(R.id.tabhost);
 
@@ -63,7 +81,16 @@ public class Main_Activity extends AppCompatActivity {
         /** Add the tabs  to the TabHost to display. */
         tabHost.addTab(tab1);
         tabHost.addTab(tab2);
-
+        tabHost.setOnTabChangedListener(new TabHost.OnTabChangeListener(){
+            @Override
+            public void onTabChanged(String tabId) {
+                if("Inventory".equals(tabId)) {
+                    mListView = inventoryList;
+                }
+                if("Grocery List".equals(tabId)) {
+                    mListView = groceriesList;
+                }
+            }});
         inventoryList = (ListView) findViewById(R.id.list1);
         inventoryList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
@@ -118,10 +145,29 @@ public class Main_Activity extends AppCompatActivity {
                 return false;
             }
         });
+        Ingredient coke = new Ingredient("0496340",2, "Coca-Cola");
+        Ingredient cheerios = new Ingredient("016000451377", 5, "Cheerios");
 
-        inventoryList.setAdapter(new ArrayAdapter(this, android.R.layout.simple_list_item_1,inventory));
-        groceriesList.setAdapter(new ArrayAdapter(this, android.R.layout.simple_list_item_1,groceries));
+        inventory.add(coke);
+        inventory.add(cheerios);
+        groceries.add(coke);
+        groceries.add(cheerios);
 
+
+
+        onNewIntent(getIntent());
+    }
+
+    public void loadUI(){
+        final ProgressBar waiting = (ProgressBar)findViewById(R.id.waiting);
+        final TabHost tabHost = (TabHost)findViewById(R.id.tabhost);
+
+        inventoryAdapter = new IngredientArrayAdapter(getApplicationContext(),this,inventory);
+        groceryListAdapter = new IngredientArrayAdapter(getApplicationContext(),this,groceries);
+        inventoryList.setAdapter(inventoryAdapter);
+        groceriesList.setAdapter(groceryListAdapter);
+        mListView = inventoryList;
+        mAdapter = inventoryAdapter;
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setImageResource(R.drawable.plus);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -130,8 +176,22 @@ public class Main_Activity extends AppCompatActivity {
                 addItem(tabHost.getCurrentTab());
             }
         });
-        onNewIntent(getIntent());
+        /*CountDownTimer timer = new CountDownTimer(1000,2000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+
+            }
+
+            @Override
+            public void onFinish() {
+
+            }
+        };
+        timer.start();*/
+        waiting.setVisibility(View.INVISIBLE);
+        tabHost.setVisibility(View.VISIBLE);
     }
+
 
     public void addItem(final int tab){
 
@@ -147,11 +207,11 @@ public class Main_Activity extends AppCompatActivity {
                 if(item.getText().toString().trim().length()>0) {
                     switch (tab) {
                         case 0:
-                            inventory.add(item.getText().toString());
+                            //inventory.add(item.getText().toString());
                             ((ArrayAdapter) inventoryList.getAdapter()).notifyDataSetChanged();
                             break;
                         case 1:
-                            groceries.add(item.getText().toString());
+                            //groceries.add(item.getText().toString());
                             ((ArrayAdapter) groceriesList.getAdapter()).notifyDataSetChanged();
                             break;
                         default:
@@ -194,45 +254,103 @@ public class Main_Activity extends AppCompatActivity {
     }
 
     @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        setIntent(intent);
+    protected void onResume() {
+        super.onResume();
+
+        /**
+         * It's important, that the activity is in the foreground (resumed). Otherwise
+         * an IllegalStateException is thrown.
+         */
+        setupForegroundDispatch(this, mNfcAdapter);
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        Intent intent = getIntent();
+    protected void onPause() {
+        /**
+         * Call this before onPause, otherwise an IllegalArgumentException is thrown as well.
+         */
+        stopForegroundDispatch(this, mNfcAdapter);
+
+        super.onPause();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        /**
+         * This method gets called, when a new Intent gets associated with the current activity instance.
+         * Instead of creating a new activity, onNewIntent will be called. For more information have a look
+         * at the documentation.
+         *
+         * In our case this method gets called, when the user attaches a Tag to the device.
+         */
+        handleIntent(intent);
+    }
+
+    private void handleIntent(Intent intent) {
         String action = intent.getAction();
-        Toast.makeText(getApplicationContext(),action,Toast.LENGTH_LONG).show();
         Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
 
-        String s = action + "\n\n" + tag.toString();
-
+        String s = action + "\n\n" + tag.getId() + "\n" + tag.getTechList()[1];
         // parse through all NDEF messages and their records and pick text type only
-        Parcelable[] data = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
-        if (data != null) {
-            try {
-                for (int i = 0; i < data.length; i++) {
-                    NdefRecord[] recs = ((NdefMessage)data[i]).getRecords();
-                    for (int j = 0; j < recs.length; j++) {
-                        if (recs[j].getTnf() == NdefRecord.TNF_WELL_KNOWN &&
-                                Arrays.equals(recs[j].getType(), NdefRecord.RTD_TEXT)) {
-                            byte[] payload = recs[j].getPayload();
-                            String textEncoding = ((payload[0] & 0200) == 0) ? "UTF-8" : "UTF-16";
-                            int langCodeLen = payload[0] & 0077;
+        String[] techList = tag.getTechList();
+        String searchedTech = Ndef.class.getName();
 
-                            s += ("\n\nNdefMessage[" + i + "], NdefRecord[" + j + "]:\n\"" +
-                                    new String(payload, langCodeLen + 1, payload.length - langCodeLen - 1,
-                                            textEncoding) + "\"");
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                Log.e("TagDispatch", e.toString());
+        for (String tech : techList) {
+            if (searchedTech.equals(tech)) {
+                NFC_Utility.NdefReaderTask reader = nfc_util.new NdefReaderTask();
+                reader.execute(tag);
+                break;
             }
         }
-
-        Toast.makeText(getApplicationContext(),s,Toast.LENGTH_LONG);
+        /*if(nfc_util.writableTag(tag)) {
+            //writeTag here
+            NFC_Utility.WriteResponse wr = nfc_util.writeTag(nfc_util.getTagAsNdef(ingredientsToPayload()), tag);
+            String message = (wr.getStatus() == 1? "Success: " : "Failed: ") + wr.getMessage();
+            Toast.makeText(getApplicationContext(),message,Toast.LENGTH_SHORT).show();
+        }*/
     }
+
+    /**
+     * @param activity The corresponding {@link Activity} requesting the foreground dispatch.
+     * @param adapter The {@link NfcAdapter} used for the foreground dispatch.
+     */
+    public static void setupForegroundDispatch(final Activity activity, NfcAdapter adapter) {
+        final Intent intent = new Intent(activity.getApplicationContext(), activity.getClass());
+        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+        final PendingIntent pendingIntent = PendingIntent.getActivity(activity.getApplicationContext(), 0, intent, 0);
+
+        IntentFilter[] filters = new IntentFilter[1];
+        String[][] techList = new String[][]{};
+
+        // Notice that this is the same filter as in our manifest.
+        filters[0] = new IntentFilter();
+        filters[0].addAction(NfcAdapter.ACTION_NDEF_DISCOVERED);
+        filters[0].addCategory(Intent.CATEGORY_DEFAULT);
+        try {
+            filters[0].addDataType("text/plain");
+        } catch (IntentFilter.MalformedMimeTypeException e) {
+            throw new RuntimeException("Check your mime type.");
+        }
+
+        adapter.enableForegroundDispatch(activity, pendingIntent, filters, techList);
+    }
+
+
+    public static void stopForegroundDispatch(final Activity activity, NfcAdapter adapter) {
+        adapter.disableForegroundDispatch(activity);
+    }
+
+    /*private String ingredientsToPayload(){
+        String payloadString = "";
+        for(String ingredient:inv){
+            payloadString += ingredient + " " + Collections.frequency(inventory,ingredient) + "\r\n";
+        }
+        return payloadString;
+    }*/
+
+
+
+
+
 }
