@@ -3,9 +3,11 @@ package com.frigid;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
@@ -14,6 +16,7 @@ import android.nfc.tech.Ndef;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -24,22 +27,39 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.ViewConfiguration;
+import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.NumberPicker;
 import android.widget.ProgressBar;
+import android.widget.Spinner;
+import android.widget.SpinnerAdapter;
 import android.widget.TabHost;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Scanner;
 import java.util.Set;
 
 public class Main_Activity extends AppCompatActivity {
@@ -145,15 +165,6 @@ public class Main_Activity extends AppCompatActivity {
                 return false;
             }
         });
-        Ingredient coke = new Ingredient("0496340",2, "Coca-Cola");
-        Ingredient cheerios = new Ingredient("016000451377", 5, "Cheerios");
-
-        inventory.add(coke);
-        inventory.add(cheerios);
-        groceries.add(coke);
-        groceries.add(cheerios);
-
-
 
         onNewIntent(getIntent());
     }
@@ -192,6 +203,66 @@ public class Main_Activity extends AppCompatActivity {
         tabHost.setVisibility(View.VISIBLE);
     }
 
+    public void refreshAdapters(){
+        this.inventoryAdapter.notifyDataSetChanged();
+        this.groceryListAdapter.notifyDataSetChanged();
+    }
+
+    public void saveToFile(String ndef_result){
+        File file = new File(getFilesDir(),"ndef_result.txt");
+        FileOutputStream outputStream;
+        try{
+            file.createNewFile();
+            outputStream = openFileOutput("ndef_result.txt", Context.MODE_PRIVATE);
+            outputStream.write(ndef_result.getBytes());
+            outputStream.flush();
+            outputStream.close();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
+    }
+
+    public void addIngredientToFile(Ingredient i){
+
+        File file = new File(getFilesDir(),"ingredients.json");
+        FileOutputStream outputStream;
+        System.out.println(file.exists());
+        try{
+                if(!file.exists()){
+                    outputStream = openFileOutput("ingredients.json", Context.MODE_PRIVATE);
+                    outputStream.write("{}".getBytes());
+                    outputStream.flush();
+                    outputStream.close();
+                }
+
+                    FileInputStream fis = openFileInput("ingredients.json");
+                    InputStreamReader isr = new InputStreamReader(fis);
+                    BufferedReader bufferedReader = new BufferedReader(isr);
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = bufferedReader.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    String myJson = sb.toString();
+                    System.out.println(myJson);
+                    JSONObject object = new JSONObject(myJson);
+                    if (!object.has(i.upc)) {
+                        object.put(i.upc, i.toJSON());
+                        String newJSON = object.toString();
+                        outputStream = openFileOutput("ingredients.json", Context.MODE_PRIVATE);
+                        outputStream.write(newJSON.getBytes());
+                        outputStream.flush();
+                        outputStream.close();
+                    }
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
+    }
+
 
     public void addItem(final int tab){
 
@@ -199,24 +270,24 @@ public class Main_Activity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(Main_Activity.this);
         LayoutInflater inflater = getLayoutInflater();
         final View view = inflater.inflate(R.layout.add_item_dialog,null);
-        final EditText item = (EditText)view.findViewById(R.id.item_to_add);
+        final Spinner spinner = (Spinner) view.findViewById(R.id.spinner);
+        final NumberPicker picker = (NumberPicker) view.findViewById(R.id.number_picker);
+        picker.setMinValue(0);
+        picker.setMaxValue(20);
+        spinner.setAdapter(getSpinnerAdapter());
         builder.setView(view).setPositiveButton("Add", new DialogInterface.OnClickListener() {
 
             @Override
             public void onClick(DialogInterface dialog, int id) {
-                if(item.getText().toString().trim().length()>0) {
-                    switch (tab) {
-                        case 0:
-                            //inventory.add(item.getText().toString());
-                            ((ArrayAdapter) inventoryList.getAdapter()).notifyDataSetChanged();
-                            break;
-                        case 1:
-                            //groceries.add(item.getText().toString());
-                            ((ArrayAdapter) groceriesList.getAdapter()).notifyDataSetChanged();
-                            break;
-                        default:
-                            break;
-                    }
+                if(picker.getValue() == 0) {
+                    Ingredient i = (Ingredient) spinner.getSelectedItem();
+                    i.quantity = 0;
+                    sanityCheckGroceries(i);
+                }
+                else{
+                    Ingredient i = (Ingredient) spinner.getSelectedItem();
+                    i.quantity = picker.getValue();
+                    sanityCheckInventory(i);
                 }
             }
         }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -229,6 +300,140 @@ public class Main_Activity extends AppCompatActivity {
         dialog.setTitle(Html.fromHtml("<font color='#000000'>Add Item to List</font>"));
         dialog.setCanceledOnTouchOutside(false);
         dialog.show();
+    }
+
+    private SpinnerAdapter getSpinnerAdapter(){
+        JSONObject json = null;
+        String jsonString;
+        CustomSpinnerAdapter adapter = null;
+        try {
+            FileInputStream fis = openFileInput("ingredients.json");
+            InputStreamReader isr = new InputStreamReader(fis);
+            BufferedReader bufferedReader = new BufferedReader(isr);
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                sb.append(line);
+            }
+            jsonString = sb.toString();
+            json = new JSONObject(jsonString);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        finally{
+            ArrayList<Ingredient> ingredients = new ArrayList<>();
+            Iterator<?> keys = json.keys();
+
+            while( keys.hasNext() ) {
+                try {
+                    String key = (String) keys.next();
+                    if (json.get(key) instanceof JSONObject) {
+                        JSONObject object = json.getJSONObject(key);
+                        String short_name = null;
+                        String long_name = null;
+                        if(object.has("short_name"))short_name = object.getString("short_name");
+                        if(object.has("long_name"))long_name = object.getString("long_name");
+                        ingredients.add(new Ingredient(key,0,short_name,long_name));
+                    }
+                }
+                catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+            adapter = new CustomSpinnerAdapter(this,ingredients);
+        }
+
+        return adapter;
+
+    }
+
+    public class CustomSpinnerAdapter extends ArrayAdapter<Ingredient>{
+
+        private Main_Activity activity;
+        private ArrayList<Ingredient> ingredients;
+        LayoutInflater inflater;
+
+        /*************  CustomAdapter Constructor *****************/
+        public CustomSpinnerAdapter(Main_Activity activity, ArrayList<Ingredient> objects)
+        {
+            super(activity.getBaseContext(), R.layout.spinner_item, objects);
+
+            /********** Take passed values **********/
+            this.activity = activity;
+            ingredients = objects;
+            /***********  Layout inflator to call external xml layout () **********************/
+            inflater = (LayoutInflater)activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+        }
+
+        @Override
+        public View getDropDownView(int position, View convertView,ViewGroup parent) {
+            return getCustomView(position, convertView, parent);
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            return getCustomView(position, convertView, parent);
+        }
+
+        // This funtion called for each row ( Called data.size() times )
+        public View getCustomView(int position, View convertView, ViewGroup parent) {
+
+            /********** Inflate spinner_rows.xml file for each row ( Defined below ) ************/
+            View row = inflater.inflate(R.layout.spinner_item, parent, false);
+            Ingredient i = ingredients.get(position);
+            /***** Get each Model object from Arraylist ********/
+            TextView item = (TextView)row.findViewById(R.id.spinner_item);
+            if(i.shortName != null)item.setText(i.shortName);
+            else item.setText(i.longName);
+
+
+            return row;
+        }
+    }
+
+    protected void sanityCheckGroceries(Ingredient i){
+        boolean add = true;
+        for(Ingredient grocery : groceries){
+            if(grocery.upc.equals(i.upc)){
+                add = false;
+            }
+        }
+        if(add) {
+            for (Ingredient ing : inventory) {
+                if (ing.upc.equals(i.upc)) {
+                    inventory.remove(ing);
+                    break;
+                }
+            }
+            groceries.add(i);
+            refreshAdapters();
+        }
+    }
+
+    protected void sanityCheckInventory(Ingredient i){
+        boolean add = true;
+        Ingredient temp = null;
+        for(Ingredient ing : inventory){
+            if(ing.upc.equals(i.upc)){
+                add = false;
+                temp = ing;
+            }
+        }
+        if(add) {
+            for (Ingredient grocery : groceries) {
+                if (grocery.upc.equals(i.upc)) {
+                    groceries.remove(grocery);
+                }
+            }
+            inventory.add(i);
+            refreshAdapters();
+        }
+        else{
+            temp.quantity = temp.quantity+i.quantity;
+            refreshAdapters();
+        }
     }
 
     @Override
@@ -290,24 +495,62 @@ public class Main_Activity extends AppCompatActivity {
         String action = intent.getAction();
         Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
 
-        String s = action + "\n\n" + tag.getId() + "\n" + tag.getTechList()[1];
-        // parse through all NDEF messages and their records and pick text type only
-        String[] techList = tag.getTechList();
-        String searchedTech = Ndef.class.getName();
 
-        for (String tech : techList) {
-            if (searchedTech.equals(tech)) {
-                NFC_Utility.NdefReaderTask reader = nfc_util.new NdefReaderTask();
-                reader.execute(tag);
-                break;
-            }
+        if(tag != null){
+            SharedPreferences.Editor edit = getSharedPreferences("frigid", Context.MODE_PRIVATE).edit();
+            edit.putString("nfc_tag",tag.toString());
+            edit.commit();
         }
+
+        if(tag != null) {
+            System.out.println("Reading from tag");
+            String s = action + "\n\n" + tag.getId() + "\n" + tag.getTechList()[1];
+            // parse through all NDEF messages and their records and pick text type only
+            String[] techList = tag.getTechList();
+            String searchedTech = Ndef.class.getName();
+
+            for (String tech : techList) {
+                if (searchedTech.equals(tech)) {
+                    NFC_Utility.NdefReaderTask reader = nfc_util.new NdefReaderTask();
+                    reader.execute(tag);
+                    break;
+                }
+            }
         /*if(nfc_util.writableTag(tag)) {
             //writeTag here
             NFC_Utility.WriteResponse wr = nfc_util.writeTag(nfc_util.getTagAsNdef(ingredientsToPayload()), tag);
             String message = (wr.getStatus() == 1? "Success: " : "Failed: ") + wr.getMessage();
             Toast.makeText(getApplicationContext(),message,Toast.LENGTH_SHORT).show();
         }*/
+        }
+        else{
+            loadUI();
+            try {
+                String[] upcs = readFile(new File(getFilesDir(), "ndef_result.txt")).split("\\n");
+                System.out.println("Reading from file");
+                for (String upc_line : upcs) {
+                    NFC_Utility.upcToIngredients task = nfc_util.new upcToIngredients(upc_line);
+                    task.execute();
+
+                }
+            }
+            catch (Exception e){e.printStackTrace();}
+        }
+    }
+
+    protected String readFile(File file) throws IOException {
+        StringBuilder fileContents = new StringBuilder((int)file.length());
+        Scanner scanner = new Scanner(file);
+        String lineSeparator = System.getProperty("line.separator");
+
+        try {
+            while(scanner.hasNextLine()) {
+                fileContents.append(scanner.nextLine() + lineSeparator);
+            }
+            return fileContents.toString();
+        } finally {
+            scanner.close();
+        }
     }
 
     /**

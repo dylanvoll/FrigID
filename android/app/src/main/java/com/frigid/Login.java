@@ -2,8 +2,10 @@ package com.frigid;
 
 import android.app.Activity;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.nfc.FormatException;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
@@ -20,6 +22,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
@@ -39,31 +42,48 @@ public class Login extends AppCompatActivity {
     public void onCreate(Bundle savedState) {
         super.onCreate(savedState);
 
-        setContentView(R.layout.activity_login);
-        mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
-        mTextView = (TextView)findViewById(R.id.textView);
-        button = (Button)findViewById(R.id.button);
-
-        if (mNfcAdapter != null) {
-            mTextView.setText("Read an NFC tag");
-        } else {
-            mTextView.setText("This phone is not NFC enabled.");
+        SharedPreferences sharedPref = getSharedPreferences("frigid", Context.MODE_PRIVATE);
+        if(sharedPref.getString("nfc_tag", null) != null){
+            Intent intent = new Intent(this,Main_Activity.class);
+            startActivity(intent);
         }
+        else {
+            SharedPreferences.Editor edit = sharedPref.edit();
 
-        // create an intent with tag data and deliver to this activity
-        mPendingIntent = PendingIntent.getActivity(getApplicationContext(), 0,
-                new Intent(this, getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
 
-        // set an intent filter for all MIME data
-        IntentFilter ndefIntent = new IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED);
-        try {
-            ndefIntent.addDataType("text/plain");
-            mIntentFilters = new IntentFilter[] { ndefIntent };
-        } catch (Exception e) {
-            Log.e("TagDispatch", e.toString());
+            setContentView(R.layout.activity_login);
+            mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
+            mTextView = (TextView) findViewById(R.id.textView);
+            button = (Button) findViewById(R.id.button);
+
+            if (mNfcAdapter != null) {
+                mTextView.setText("Read an NFC tag");
+            } else {
+                mTextView.setText("This phone is not NFC enabled.");
+            }
+
+            // create an intent with tag data and deliver to this activity
+            mPendingIntent = PendingIntent.getActivity(getApplicationContext(), 0,
+                    new Intent(this, getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
+
+            // set an intent filter for all MIME data
+            IntentFilter ndefIntent = new IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED);
+            try {
+                ndefIntent.addDataType("text/plain");
+                mIntentFilters = new IntentFilter[]{ndefIntent};
+            } catch (Exception e) {
+                Log.e("TagDispatch", e.toString());
+            }
+
+            mNFCTechLists = new String[][]{new String[]{NfcF.class.getName()}};
+            try {
+                File ndef = new File(getFilesDir(), "ndef_result.txt");
+                ndef.createNewFile();
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
         }
-
-        mNFCTechLists = new String[][] { new String[] { NfcF.class.getName() } };
 
 
     }

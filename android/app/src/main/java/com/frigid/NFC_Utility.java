@@ -10,9 +10,14 @@ import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.Toast;
 
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
@@ -83,39 +88,107 @@ public class NFC_Utility {
 
         @Override
         protected void onPostExecute(String result) {
-            Main_Activity.ndefString = result;
-            new upcToIngredients(result).execute();
+            try {
+                if (result.trim().equals(activity.readFile(new File(activity.getFilesDir(), "ndef_result.txt")).trim())){System.out.println("No updates from scan");}
+                else {
+                    activity.ndefString = result;
+                    activity.loadUI();
+                    activity.saveToFile(result);
+                    String[] upcs = result.split("\\n");
+                    for (String upc_line : upcs) {
+                        new upcToIngredients(upc_line).execute();
+                    }
+                }
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
+
         }
     }
 
     class upcToIngredients extends AsyncTask<String, Void, String> {
 
-        String ndefString;
-        ArrayList<Ingredient> inventory = new ArrayList<>();
-        ArrayList<Ingredient> groceries = new ArrayList<>();
         UPC_Api_Utility api = new UPC_Api_Utility(context);
+        String upc_line = null;
 
-        public upcToIngredients(String ndefString){
-            this.ndefString = ndefString;
+
+        public upcToIngredients(String upc_line){
+            this.upc_line = upc_line;
         }
 
         @Override
         protected String doInBackground(String... params) {
 
-            System.out.println("Starting network");
+                String upc = upc_line.split(" ")[0];
+                int quantity = Integer.parseInt(upc_line.split(" ")[1]);
+                JSONObject json;
+                if(new File(context.getFilesDir(),"ingredients.json").exists()) {
+                    try {
+                        FileInputStream fis = context.openFileInput("ingredients.json");
+                        InputStreamReader isr = new InputStreamReader(fis);
+                        BufferedReader bufferedReader = new BufferedReader(isr);
+                        StringBuilder sb = new StringBuilder();
+                        String line;
+                        while ((line = bufferedReader.readLine()) != null) {
+                            sb.append(line);
+                        }
+                        String myJson = sb.toString();
+                        if(myJson.length() != 0) {
+                            json = new JSONObject(myJson);
+                            if (json.has(upc)) {
+                                if (quantity == 0) {
+                                    Ingredient i = new Ingredient(upc, quantity, json.getJSONObject(upc));
+                                    activity.groceries.add(i);
+                                } else {
+                                    Ingredient i = new Ingredient(upc, quantity, json.getJSONObject(upc));
+                                    activity.inventory.add(i);
+                                }
+                            }
+                            else{
+                                String longName = api.getNameFromUpc(upc);
+                                if (quantity == 0) {
+                                    Ingredient i = new Ingredient(upc, quantity, null, longName);
+                                    activity.groceries.add(i);
+                                    activity.addIngredientToFile(i);
+                                } else {
+                                    Ingredient i = new Ingredient(upc, quantity, null, longName);
+                                    activity.inventory.add(i);
+                                    activity.addIngredientToFile(i);
+                                }
+                            }
+                        }
+                        else {
+                                String longName = api.getNameFromUpc(upc);
+                                if (quantity == 0) {
+                                    Ingredient i = new Ingredient(upc, quantity, null, longName);
+                                    activity.groceries.add(i);
+                                    activity.addIngredientToFile(i);
+                                } else {
+                                    Ingredient i = new Ingredient(upc, quantity, null, longName);
+                                    activity.inventory.add(i);
+                                    activity.addIngredientToFile(i);
+                                }
+                            }
 
-            String[] upcs = ndefString.split("\\n");
-            for(String upcLine : upcs){
-                String upc = upcLine.split(" ")[0];
-                int quantity = Integer.parseInt(upcLine.split(" ")[1]);
-                String longName = api.getNameFromUpc(upc);
-                if(quantity == 0){
-                    groceries.add(new Ingredient(upc,quantity,null,longName));
+                    }
+                    catch(Exception e){
+                        e.printStackTrace();
+                    }
                 }
-                else{
-                    inventory.add(new Ingredient(upc,quantity,null,longName));
+                else {
+                    String longName = api.getNameFromUpc(upc);
+                    if (quantity == 0) {
+                        Ingredient i = new Ingredient(upc, quantity, null, longName);
+                        activity.groceries.add(i);
+                        activity.addIngredientToFile(i);
+                    } else {
+                        Ingredient i = new Ingredient(upc, quantity, null, longName);
+                        activity.inventory.add(i);
+                        activity.addIngredientToFile(i);
+                    }
                 }
-            }
+
 
             return "Finished";
         }
@@ -123,11 +196,8 @@ public class NFC_Utility {
 
         @Override
         protected void onPostExecute(String result) {
-            activity.inventory = inventory;
-            activity.groceries = groceries;
-            activity.loadUI();
-            System.out.println("Loading UI");
 
+            activity.refreshAdapters();
         }
     }
 

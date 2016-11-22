@@ -4,6 +4,7 @@ import android.content.Context;
 
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -30,15 +31,15 @@ public class UPC_Api_Utility {
     }
     protected String getRequest(String upc) throws IOException {
         InputStream is = null;
-        int len = 2000;
+        int len = 100000;
         int response = -1;
         String responseString = null;
 
         try {
             URL url = new URL(base_url + upc);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setReadTimeout(15000 /* milliseconds */);
-            conn.setConnectTimeout(5000 /* milliseconds */);
+            conn.setReadTimeout(25000 /* milliseconds */);
+            conn.setConnectTimeout(15000 /* milliseconds */);
             conn.setRequestMethod("GET");
             conn.setDoInput(true);
             // Starts the query
@@ -47,7 +48,7 @@ public class UPC_Api_Utility {
             is = conn.getInputStream();
 
             // Convert the InputStream into a string
-            responseString = readIt(is, len);
+            responseString = readIt(is,len);
 
         }
         catch (ProtocolException e) {
@@ -85,10 +86,13 @@ public class UPC_Api_Utility {
     }
 
     public String readIt(InputStream stream, int len) throws IOException, UnsupportedEncodingException {
-        Reader reader = null;
-        reader = new InputStreamReader(stream, "UTF-8");
-        char[] buffer = new char[len];
-        reader.read(buffer);
-        return new String(buffer);
+        StringBuilder builder = new StringBuilder();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
+        String line;
+        while((line = reader.readLine()) != null){
+            builder.append(line);
+        }
+
+        return builder.toString();
     }
 }
