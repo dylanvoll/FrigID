@@ -23,7 +23,7 @@ def grocery_input(upc, name):
 def get_grocery_id(upc):
     cmd = "SELECT id FROM grocery WHERE upc = ?"
     rtVal = do_command(cmd, [upc])
-    return rtVal[0]
+    return rtVal[0]['id']
 
 
 def get_grocery_name(upc):

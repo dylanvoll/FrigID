@@ -13,8 +13,12 @@ def update_inventory_from_ndef(list):
     set = parse_list(list)
 
     for item in set:
+        itemCount = get_item_count(set, item['upc'])
         if grocery_db_helper.grocery_exists(item['upc']):
             if inventory_db_helper.get_first_inventory(item['upc']) != -1:
+                inventoryCount = inventory_db_helper.get_inventory_count(item['upc'])
+                if inventoryCount != itemCount:
+                    pass
                 pass
 
 
@@ -33,3 +37,13 @@ def parse_list(list):
             })
 
     return set
+
+
+def get_item_count(set, upc):
+    count = 0
+
+    for item in set:
+        if item['upc'] == upc:
+            count += int(item['count'])
+
+    return count

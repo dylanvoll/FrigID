@@ -39,6 +39,7 @@ def connected(tag):
     else:
         print("Card not readable")
 
+    nfc_helper.update_inventory_from_ndef(currentText.text)
     textRecord = nfc_helper.get_inventory_ndef()
 
     print("New Record:")

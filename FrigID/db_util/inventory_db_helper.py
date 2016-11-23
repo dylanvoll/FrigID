@@ -15,9 +15,9 @@ def exists_in_inventory(upc):
 
 
 def get_first_inventory(upc):
-    grocery = get_grocery_id(upc)
+    id = get_grocery_id(upc)
     cmd = "SELECT id FROM inventory WHERE grocery_id = ? ORDER BY date_purchased LIMIT 1"
-    rtVal = do_command(cmd, [grocery['id']])
+    rtVal = do_command(cmd, [id])
 
     if len(rtVal) > 0:
         return rtVal[0]['id']
@@ -47,3 +47,11 @@ def checkout_grocery(upc):
     id = get_first_inventory(upc)
     cmd = "DELETE FROM inventory WHERE id = ?"
     do_command_no_return(cmd, [id])
+
+
+def get_inventory_count(upc):
+    id = get_grocery_id(upc)
+    cmd = "SELECT COUNT(*) as count FROM inventory WHERE grocery_id = ?"
+    rtVal = do_command(cmd, [id])
+
+    return rtVal[0]['count']

@@ -11,7 +11,7 @@ class Ingredient(object):
     def check_in(self):
         if grocery_db_helper.grocery_exists(self.upc):
             groceryId = grocery_db_helper.get_grocery_id(self.upc)
-            inventory_db_helper.add_grocery_to_inventory(groceryId['id'])
+            inventory_db_helper.add_grocery_to_inventory(groceryId)
         else:
             groceryId = grocery_db_helper.grocery_input(self.upc, self.name)
             inventory_db_helper.add_grocery_to_inventory(groceryId)
