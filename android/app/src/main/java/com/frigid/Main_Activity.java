@@ -17,6 +17,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -41,6 +42,7 @@ import android.widget.TabHost;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -121,6 +123,8 @@ public class Main_Activity extends AppCompatActivity {
 
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
+                        Ingredient i = inventoryAdapter.getItem(position);
+                        removeIngredient(i.upc);
                         inventory.remove(position);
                         ((ArrayAdapter) inventoryList.getAdapter()).notifyDataSetChanged();
                     }
@@ -148,6 +152,8 @@ public class Main_Activity extends AppCompatActivity {
 
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
+                        Ingredient i = groceryListAdapter.getItem(position);
+                        removeIngredient(i.upc);
                         groceries.remove(position);
                         ((ArrayAdapter) groceriesList.getAdapter()).notifyDataSetChanged();
                     }
@@ -393,6 +399,96 @@ public class Main_Activity extends AppCompatActivity {
         }
     }
 
+    protected void addIngredient(String upc, int quantity){
+        JSONObject json = null;
+        try {
+            FileInputStream fis = openFileInput("ingredients_change.json");
+            InputStreamReader isr = new InputStreamReader(fis);
+            BufferedReader bufferedReader = new BufferedReader(isr);
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                sb.append(line);
+            }
+            String jsonString = sb.toString();
+            fis.close();
+            json = new JSONObject(jsonString);
+            JSONObject addBlock = json.getJSONObject("ingredients").getJSONObject("add");
+            addBlock.put(upc,quantity);
+            JSONArray remove = json.getJSONObject("ingredients").getJSONArray("remove");
+            for(int z = 0; z < remove.length(); z++) {
+                if(remove.getString(z).equals(upc)){
+                    remove.remove(z);
+                    break;
+                }
+            }
+            FileOutputStream outputStream = openFileOutput("ingredients_change.json", Context.MODE_PRIVATE);
+            outputStream.write(json.toString().getBytes());
+            outputStream.flush();
+            outputStream.close();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
+    }
+
+    protected void ingredientChange(String upc, int quantity){
+        JSONObject json = null;
+        try {
+            FileInputStream fis = openFileInput("ingredients_change.json");
+            InputStreamReader isr = new InputStreamReader(fis);
+            BufferedReader bufferedReader = new BufferedReader(isr);
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                sb.append(line);
+            }
+            String jsonString = sb.toString();
+            fis.close();
+            json = new JSONObject(jsonString);
+            JSONObject changeBlock = json.getJSONObject("ingredients").getJSONObject("change");
+            changeBlock.put(upc,quantity);
+            FileOutputStream outputStream = openFileOutput("ingredients_change.json", Context.MODE_PRIVATE);
+            outputStream.write(json.toString().getBytes());
+            outputStream.flush();
+            outputStream.close();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
+    }
+
+
+    protected void removeIngredient(String upc){
+
+        JSONObject json = null;
+        try {
+            FileInputStream fis = openFileInput("ingredients_change.json");
+            InputStreamReader isr = new InputStreamReader(fis);
+            BufferedReader bufferedReader = new BufferedReader(isr);
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                sb.append(line);
+            }
+            String jsonString = sb.toString();
+            fis.close();
+            json = new JSONObject(jsonString);
+            JSONArray removeBlock = json.getJSONObject("ingredients").getJSONArray("remove");
+            removeBlock.put(upc);
+            FileOutputStream outputStream = openFileOutput("ingredients_change.json", Context.MODE_PRIVATE);
+            outputStream.write(json.toString().getBytes());
+            outputStream.flush();
+            outputStream.close();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
+    }
+
     protected void sanityCheckGroceries(Ingredient i){
         boolean add = true;
         for(Ingredient grocery : groceries){
@@ -410,6 +506,7 @@ public class Main_Activity extends AppCompatActivity {
             groceries.add(i);
             refreshAdapters();
         }
+        addIngredient(i.upc,i.quantity);
     }
 
     protected void sanityCheckInventory(Ingredient i){
@@ -428,14 +525,20 @@ public class Main_Activity extends AppCompatActivity {
                 }
             }
             inventory.add(i);
+            addIngredient(i.upc,i.quantity);
             refreshAdapters();
         }
         else{
             temp.quantity = temp.quantity+i.quantity;
+            ingredientChange(temp.upc,i.quantity);
             refreshAdapters();
         }
     }
 
+    @Override
+    public void onBackPressed() {
+        
+    }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -516,12 +619,6 @@ public class Main_Activity extends AppCompatActivity {
                     break;
                 }
             }
-        /*if(nfc_util.writableTag(tag)) {
-            //writeTag here
-            NFC_Utility.WriteResponse wr = nfc_util.writeTag(nfc_util.getTagAsNdef(ingredientsToPayload()), tag);
-            String message = (wr.getStatus() == 1? "Success: " : "Failed: ") + wr.getMessage();
-            Toast.makeText(getApplicationContext(),message,Toast.LENGTH_SHORT).show();
-        }*/
         }
         else{
             loadUI();
@@ -536,6 +633,127 @@ public class Main_Activity extends AppCompatActivity {
             }
             catch (Exception e){e.printStackTrace();}
         }
+    }
+
+    protected void writeTag(Tag tag,String ndef){
+        if(nfc_util.writableTag(tag)) {
+            //writeTag here
+            NFC_Utility.WriteResponse wr = nfc_util.writeTag(nfc_util.getTagAsNdef(ndef),tag);
+            String message = (wr.getStatus() == 1? "Success: " : "Failed: ") + wr.getMessage();
+            Toast.makeText(getApplicationContext(),message,Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    protected String updateNdef(String ndefResult){
+        System.out.println(ndefResult);
+        System.out.println("Made it here");
+        JSONObject json = null;
+        String ndefNew = "";
+        String[] lines = ndefResult.split("\\n");
+        String[] upcs = new String[lines.length];
+        ArrayList<String> UPC = new ArrayList<>();
+        ArrayList<Integer> Quantity = new ArrayList<>();
+        int[] quantities = new int[lines.length];
+        for (int i = 0; i<lines.length; i++) {
+            upcs[i] = lines[i].split(" ")[0];
+            quantities[i] = Integer.parseInt(lines[i].split(" ")[1].trim());
+        }
+
+        try {
+            FileInputStream fis = openFileInput("ingredients_change.json");
+            InputStreamReader isr = new InputStreamReader(fis);
+            BufferedReader bufferedReader = new BufferedReader(isr);
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                sb.append(line);
+            }
+            String jsonString = sb.toString();
+            System.out.println(jsonString);
+            json = new JSONObject(jsonString);
+            if(json!=null){
+                JSONObject add = json.getJSONObject("ingredients").getJSONObject("add");
+                JSONArray remove = json.getJSONObject("ingredients").getJSONArray("remove");
+                JSONObject change = json.getJSONObject("ingredients").getJSONObject("change");
+                Iterator<?> keys = add.keys();
+                while(keys.hasNext()){
+                    String upc = (String) keys.next();
+                    int quantity = add.getInt(upc);
+                    boolean added = false;
+                    for(int i = 0; i<lines.length; i++){
+                        if(upcs[i].equals(upc)){
+                            if(quantity == 0){
+                                quantities[i] = 0;
+                            }
+                            else {
+                                quantities[i] = quantities[i] + quantity;
+                            }
+                            added = true;
+                        }
+                    }
+                    if(!added){
+                        UPC.add(upc);
+                        Quantity.add(quantity);
+                    }
+                }
+                    for(int z = 0; z < remove.length(); z++) {
+                        String upc = remove.getString(z);
+                        for (int i = 0; i < lines.length; i++) {
+                            if (upcs[i].equals(upc)) {
+                                    quantities[i] = -1;
+                                    upcs[i] = "null";
+                            }
+                        }
+                    }
+                keys = change.keys();
+                while(keys.hasNext()){
+                    String upc = (String) keys.next();
+                    int quantity = change.getInt(upc);
+                    boolean changed = false;
+                    for(int i = 0; i<lines.length; i++){
+                        if(upcs[i].equals(upc)){
+                            quantities[i] = quantities[i] + quantity;
+                            changed = true;
+                            break;
+                        }
+                    }
+                    if(!changed){
+                        if(quantity >0) {
+                            UPC.add(upc);
+                            Quantity.add(quantity);
+                        }
+                    }
+                }
+            }
+            for(int i = 0; i<lines.length; i++){
+                if(upcs[i] == "null"){
+                    System.out.println("null");
+                }
+                else {
+                    UPC.add(upcs[i]);
+                    Quantity.add(quantities[i]);
+                }
+            }
+            Iterator<String> it1 = UPC.iterator();
+            Iterator<Integer> it2 = Quantity.iterator();
+
+            while (it1.hasNext() && it2.hasNext()) {
+                String upc = it1.next();
+                int quantity = it2.next();
+                ndefNew += String.format("%s %d\r\n",upc,quantity);
+            }
+
+            FileOutputStream outputStream = openFileOutput("ingredients_change.json", Context.MODE_PRIVATE);
+            outputStream.write("{\"ingredients\":{\"add\":{},\"change\":{},\"remove\":[]}}".getBytes());
+            outputStream.flush();
+            outputStream.close();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
+        return ndefNew;
+
     }
 
     protected String readFile(File file) throws IOException {

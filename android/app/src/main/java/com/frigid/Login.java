@@ -23,6 +23,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
@@ -54,7 +55,6 @@ public class Login extends AppCompatActivity {
             setContentView(R.layout.activity_login);
             mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
             mTextView = (TextView) findViewById(R.id.textView);
-            button = (Button) findViewById(R.id.button);
 
             if (mNfcAdapter != null) {
                 mTextView.setText("Read an NFC tag");
@@ -79,6 +79,14 @@ public class Login extends AppCompatActivity {
             try {
                 File ndef = new File(getFilesDir(), "ndef_result.txt");
                 ndef.createNewFile();
+                File jsonChange = new File(getFilesDir(), "ingredients_change.json");
+                if(!jsonChange.exists()) {
+                    jsonChange.createNewFile();
+                    FileOutputStream outputStream = openFileOutput("ingredients_change.json", Context.MODE_PRIVATE);
+                    outputStream.write("{\"ingredients\":{\"add\":{},\"change\":{},\"remove\":[]}}".getBytes());
+                    outputStream.flush();
+                    outputStream.close();
+                }
             }
             catch (Exception e){
                 e.printStackTrace();
