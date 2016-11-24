@@ -1,5 +1,7 @@
 import nfc.ndef
 from db_util import inventory_db_helper, grocery_db_helper
+from frigid_util import ingredient
+
 
 def get_inventory_ndef():
     list = ''
@@ -13,14 +15,24 @@ def update_inventory_from_ndef(list):
     set = parse_list(list)
 
     for item in set:
-        itemCount = get_item_count(set, item['upc'])
+        itemCount = int(item['count'])
         if grocery_db_helper.grocery_exists(item['upc']):
-            if inventory_db_helper.get_first_inventory(item['upc']) != -1:
+            invenntoryId = inventory_db_helper.get_first_inventory(item['upc'])
+            if invenntoryId != -1:  # Case where we know that we have to figure out the inventory count
                 inventoryCount = inventory_db_helper.get_inventory_count(item['upc'])
                 if inventoryCount != itemCount:
+                    inventory_db_helper.resolve_inventory_count(item['upc'], inventoryCount, itemCount)
+                else:
                     pass
-                pass
+            else:  # This branch saves us a DB call
+                inventory_db_helper.resolve_inventory_count(item['upc'], 0, itemCount)
+        else:
+            # Check-in item so we have it in the grocery table
+            newItem = ingredient.Ingredient(item['upc'])
+            newItem.check_in()
 
+            if itemCount > 1:
+                inventory_db_helper.resolve_inventory_count(item['upc'], 1, itemCount)  # Take care of the rest
 
 
 def parse_list(list):
@@ -37,13 +49,3 @@ def parse_list(list):
             })
 
     return set
-
-
-def get_item_count(set, upc):
-    count = 0
-
-    for item in set:
-        if item['upc'] == upc:
-            count += int(item['count'])
-
-    return count

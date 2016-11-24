@@ -1,6 +1,7 @@
 from db import do_insert, do_command_no_return, do_command
 from grocery_db_helper import get_grocery_id
 
+
 def exists_in_inventory(upc):
     cmd = "SELECT * FROM grocery WHERE upc = ?"
     rtVal = do_command(cmd, [upc])
@@ -55,3 +56,12 @@ def get_inventory_count(upc):
     rtVal = do_command(cmd, [id])
 
     return rtVal[0]['count']
+
+
+def resolve_inventory_count(upc, currentCount, newCount):
+    id = get_grocery_id(upc)
+    for i in range(abs(currentCount-newCount)):
+        if currentCount < newCount:
+            add_grocery_to_inventory(id)
+        else:
+            checkout_grocery(upc)
