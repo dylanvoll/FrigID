@@ -14,7 +14,7 @@ def get_inventory_ndef():
 
 
 def update_inventory_from_ndef(list):
-    set = parse_list(list)
+    set = __parse_list(list)
 
     for item in set:
         itemCount = int(item['count'])
@@ -42,7 +42,7 @@ def update_inventory_from_ndef(list):
                 inventory_db_helper.resolve_inventory_count(item['upc'], 1, itemCount)  # Take care of the rest
 
 
-def parse_list(list):
+def __parse_list(list):
     split = list.split('\n')
     set = []
     count = 0
