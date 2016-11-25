@@ -37,3 +37,11 @@ def grocery_exists(upc):
     rtVal = do_command(cmd, [upc])
 
     return bool(len(rtVal))
+
+
+def remove_grocery(upc):
+    id = get_grocery_id(upc)
+    cmd = "DELETE FROM inventory WHERE grocery_id = ?"
+    do_command_no_return(cmd, [id])
+    cmd = "DELETE FROM grocery where id = ?"
+    do_command_no_return(cmd, [id])

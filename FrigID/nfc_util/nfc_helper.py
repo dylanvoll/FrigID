@@ -2,6 +2,7 @@ import nfc.ndef
 from db_util import inventory_db_helper, grocery_db_helper
 from frigid_util import ingredient
 
+REMOVE_GROCERY = -1
 
 def get_inventory_ndef():
     list = ''
@@ -11,11 +12,17 @@ def get_inventory_ndef():
 
     return textRecord
 
+
 def update_inventory_from_ndef(list):
     set = parse_list(list)
 
     for item in set:
         itemCount = int(item['count'])
+
+        if itemCount == REMOVE_GROCERY:  # Lets remove this ingredient completely to not make it show up on grocery list
+            grocery_db_helper.remove_grocery(item['upc'])
+            continue
+
         if grocery_db_helper.grocery_exists(item['upc']):
             invenntoryId = inventory_db_helper.get_first_inventory(item['upc'])
             if invenntoryId != -1:  # Case where we know that we have to figure out the inventory count
