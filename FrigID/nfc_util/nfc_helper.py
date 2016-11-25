@@ -45,7 +45,6 @@ def update_inventory_from_ndef(list):
 def __parse_list(list):
     split = list.split('\n')
     set = []
-    count = 0
 
     for item in split:
         if item != '':
