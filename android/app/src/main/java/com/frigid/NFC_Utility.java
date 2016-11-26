@@ -99,12 +99,14 @@ public class NFC_Utility {
                     activity.inventory.clear();
                     activity.groceries.clear();
                     activity.loadUI();
-                    String ndef = activity.updateNdef(result);
-                    activity.saveToFile(ndef);
-                    activity.writeTag(tag,ndef);
-                    String[] upcs = ndef.split("\\n");
+                    String ndef = activity.updateNdef(result.trim());
+                    activity.saveToFile(ndef.trim());
+                    activity.writeTag(tag,ndef.trim());
+                    String[] upcs = ndef.trim().split("\\n");
                     for (String upc_line : upcs) {
-                        new upcToIngredients(upc_line).execute();
+                        if(Integer.parseInt(upc_line.split(" ")[1].trim()) != -1) {
+                            new upcToIngredients(upc_line).execute();
+                        }
                     }
                // }
             }
@@ -324,20 +326,8 @@ public class NFC_Utility {
         catch (Exception e){
             e.printStackTrace();
         }
-        System.out.println(new String(record.getPayload()));
+        System.out.println(new String(record.getPayload()).trim());
         return new NdefMessage(record);
     }
 
-    public void ndefToFile(String ndefString){
-        try {
-            File file = new File(context.getExternalCacheDir().getPath()+"/frigid.txt");
-            file.createNewFile(); // if file already exists will do nothing
-            FileOutputStream oFile = new FileOutputStream(file, false);
-            PrintWriter out = new PrintWriter(file);
-            out.println(ndefString);
-        }
-        catch(Exception e){
-            e.printStackTrace();
-        }
-    }
 }

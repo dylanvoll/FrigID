@@ -537,7 +537,7 @@ public class Main_Activity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        
+
     }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -626,8 +626,10 @@ public class Main_Activity extends AppCompatActivity {
                 String[] upcs = readFile(new File(getFilesDir(), "ndef_result.txt")).split("\\n");
                 System.out.println("Reading from file");
                 for (String upc_line : upcs) {
-                    NFC_Utility.upcToIngredients task = nfc_util.new upcToIngredients(upc_line);
-                    task.execute();
+                    if(Integer.parseInt(upc_line.split(" ")[1].trim()) != -1) {
+                        NFC_Utility.upcToIngredients task = nfc_util.new upcToIngredients(upc_line);
+                        task.execute();
+                    }
 
                 }
             }
@@ -701,7 +703,7 @@ public class Main_Activity extends AppCompatActivity {
                         for (int i = 0; i < lines.length; i++) {
                             if (upcs[i].equals(upc)) {
                                     quantities[i] = -1;
-                                    upcs[i] = "null";
+                                    //upcs[i] = "null";
                             }
                         }
                     }
@@ -726,13 +728,8 @@ public class Main_Activity extends AppCompatActivity {
                 }
             }
             for(int i = 0; i<lines.length; i++){
-                if(upcs[i] == "null"){
-                    System.out.println("null");
-                }
-                else {
                     UPC.add(upcs[i]);
                     Quantity.add(quantities[i]);
-                }
             }
             Iterator<String> it1 = UPC.iterator();
             Iterator<Integer> it2 = Quantity.iterator();
