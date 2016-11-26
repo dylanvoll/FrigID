@@ -70,13 +70,14 @@ public class Main_Activity extends AppCompatActivity {
     ArrayList<Ingredient> groceries = new ArrayList<>();
     ListView inventoryList;
     ListView groceriesList;
-    IngredientArrayAdapter inventoryAdapter;
-    IngredientArrayAdapter groceryListAdapter;
+    static IngredientArrayAdapter inventoryAdapter;
+    static IngredientArrayAdapter groceryListAdapter;
     private NfcAdapter mNfcAdapter;
     private NFC_Utility nfc_util;
     IngredientArrayAdapter mAdapter;
     ListView mListView;
     public static String ndefString = "";
+    public static Ingredient ingForDetail = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -114,6 +115,14 @@ public class Main_Activity extends AppCompatActivity {
                 }
             }});
         inventoryList = (ListView) findViewById(R.id.list1);
+        inventoryList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                ingForDetail = inventory.get(position);
+                Intent i = new Intent(getApplicationContext(),Ingredient_Detail.class);
+                startActivity(i);
+            }
+        });
         inventoryList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, final int position, long id) {
@@ -150,10 +159,18 @@ public class Main_Activity extends AppCompatActivity {
                 dialog.setCanceledOnTouchOutside(false);
                 dialog.show();
 
-                return false;
+                return true;
             }
         });
         groceriesList = (ListView) findViewById(R.id.list2);
+        groceriesList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                ingForDetail = groceries.get(position);
+                Intent i = new Intent(getApplicationContext(),Ingredient_Detail.class);
+                startActivity(i);
+            }
+        });
         groceriesList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, final int position, long id) {
@@ -179,7 +196,7 @@ public class Main_Activity extends AppCompatActivity {
                 dialog.setCanceledOnTouchOutside(false);
                 dialog.show();
 
-                return false;
+                return true;
             }
         });
 
@@ -220,9 +237,9 @@ public class Main_Activity extends AppCompatActivity {
         tabHost.setVisibility(View.VISIBLE);
     }
 
-    public void refreshAdapters(){
-        this.inventoryAdapter.notifyDataSetChanged();
-        this.groceryListAdapter.notifyDataSetChanged();
+    public static void refreshAdapters(){
+        inventoryAdapter.notifyDataSetChanged();
+        groceryListAdapter.notifyDataSetChanged();
     }
 
     public void saveToFile(String ndef_result){
@@ -245,7 +262,6 @@ public class Main_Activity extends AppCompatActivity {
 
         File file = new File(getFilesDir(),"ingredients.json");
         FileOutputStream outputStream;
-        System.out.println(file.exists());
         try{
                 if(!file.exists()){
                     outputStream = openFileOutput("ingredients.json", Context.MODE_PRIVATE);
