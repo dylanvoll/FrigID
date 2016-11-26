@@ -119,14 +119,25 @@ public class Main_Activity extends AppCompatActivity {
             public boolean onItemLongClick(AdapterView<?> parent, View view, final int position, long id) {
 
                 AlertDialog.Builder builder = new AlertDialog.Builder(Main_Activity.this);
-                builder.setPositiveButton("Remove", new DialogInterface.OnClickListener() {
+                final View layout = getLayoutInflater().inflate(R.layout.remove_item_inventory,null);
+                final NumberPicker picker = (NumberPicker) layout.findViewById(R.id.number_picker);
+                final Ingredient i = inventoryAdapter.getItem(position);
+                picker.setMinValue(1);
+                picker.setMaxValue(i.quantity);
+                builder.setView(layout).setPositiveButton("Remove", new DialogInterface.OnClickListener() {
 
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
-                        Ingredient i = inventoryAdapter.getItem(position);
-                        removeIngredient(i.upc);
-                        inventory.remove(position);
-                        ((ArrayAdapter) inventoryList.getAdapter()).notifyDataSetChanged();
+                        if(picker.getValue() == i.quantity) {
+                            removeIngredient(i.upc);
+                            inventory.remove(position);
+                            refreshAdapters();
+                        }
+                        else{
+                            i.quantity = i.quantity-picker.getValue();
+                            ingredientChange(i.upc,picker.getValue()*-1);
+                            refreshAdapters();
+                        }
                     }
                 }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
                     @Override
@@ -478,6 +489,8 @@ public class Main_Activity extends AppCompatActivity {
             json = new JSONObject(jsonString);
             JSONArray removeBlock = json.getJSONObject("ingredients").getJSONArray("remove");
             removeBlock.put(upc);
+            JSONObject change = json.getJSONObject("ingredients").getJSONObject("change");
+            if(change.has(upc))change.remove(upc);
             FileOutputStream outputStream = openFileOutput("ingredients_change.json", Context.MODE_PRIVATE);
             outputStream.write(json.toString().getBytes());
             outputStream.flush();
@@ -522,6 +535,7 @@ public class Main_Activity extends AppCompatActivity {
             for (Ingredient grocery : groceries) {
                 if (grocery.upc.equals(i.upc)) {
                     groceries.remove(grocery);
+                    break;
                 }
             }
             inventory.add(i);
@@ -688,7 +702,8 @@ public class Main_Activity extends AppCompatActivity {
                                 quantities[i] = 0;
                             }
                             else {
-                                quantities[i] = quantities[i] + quantity;
+                                if(quantities[i] == -1) quantities[i] = quantities[i] + quantity + 1;
+                                else quantities[i] = quantities[i] + quantity;
                             }
                             added = true;
                         }
@@ -698,12 +713,11 @@ public class Main_Activity extends AppCompatActivity {
                         Quantity.add(quantity);
                     }
                 }
-                    for(int z = 0; z < remove.length(); z++) {
+                for(int z = 0; z < remove.length(); z++) {
                         String upc = remove.getString(z);
                         for (int i = 0; i < lines.length; i++) {
                             if (upcs[i].equals(upc)) {
                                     quantities[i] = -1;
-                                    //upcs[i] = "null";
                             }
                         }
                     }
@@ -714,7 +728,8 @@ public class Main_Activity extends AppCompatActivity {
                     boolean changed = false;
                     for(int i = 0; i<lines.length; i++){
                         if(upcs[i].equals(upc)){
-                            quantities[i] = quantities[i] + quantity;
+                            if(quantities[i] == -1) quantities[i] = quantities[i] + quantity + 1;
+                            else quantities[i] = quantities[i] + quantity;
                             changed = true;
                             break;
                         }

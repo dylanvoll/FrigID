@@ -236,7 +236,7 @@ public class NFC_Utility {
                     return new WriteResponse(0,mess);
                 }
                 ndef.writeNdefMessage(message);
-                mess = "Wrote message to pre-formatted tag.";
+                mess = "FrigID updated!";
                 return new WriteResponse(1,mess);
             } else {
                 NdefFormatable format = NdefFormatable.get(tag);
