@@ -41,6 +41,11 @@ def add_grocery_to_inventory(groceryId):
     cmd = "INSERT INTO inventory (grocery_id) VALUES(?)"
     rtVal = do_insert(cmd, [groceryId])
 
+    if get_changes_count(groceryId) > 0:
+        update_changes_count(groceryId, 1)
+    else:
+        add_to_changes(groceryId, 1)
+
     return rtVal
 
 
@@ -48,6 +53,15 @@ def checkout_grocery(upc):
     id = get_first_inventory(upc)
     cmd = "DELETE FROM inventory WHERE id = ?"
     do_command_no_return(cmd, [id])
+
+    groceryId = get_grocery_id(upc)
+
+    changesCount = get_changes_count(groceryId)
+
+    if changesCount > 0:
+        update_changes_count(groceryId, -1)
+    else:
+        add_to_changes(groceryId, -1)
 
 
 def get_inventory_count(upc):
@@ -65,3 +79,38 @@ def resolve_inventory_count(upc, currentCount, newCount):
             add_grocery_to_inventory(id)
         else:
             checkout_grocery(upc)
+
+
+def get_changes_count(groceryId):
+    cmd = "SELECT COUNT(*) as count FROM changes WHERE grocery_id = ?"
+    rtVal = do_command(cmd, [groceryId])
+
+    return rtVal[0]['count']
+
+
+def set_changes_count(groceryId, quantity):
+    cmd = "UPDATE changes set quantity_changed = ? WHERE grocery_id = ?"
+    do_command_no_return(cmd, [quantity, groceryId])
+
+
+def update_changes_count(groceryId, quantity):
+    cmd = "UPDATE changes set quantity_changed = quantity_changed + ? WHERE grocery_id = ?"
+    do_command_no_return(cmd, [quantity, groceryId])
+
+
+def add_to_changes(groceryId, quantity):
+    cmd = "INSERT into changes (grocery_id, quantity_changed) VALUES (?, ?)"
+    rtVal = do_command(cmd, [groceryId, quantity])
+
+    return rtVal
+
+
+def get_chantity_changed(upc):
+    id = get_grocery_id(upc)
+    cmd = "SELECT quantity_changed from changes WHERE grocery_id = ?"
+    rtVal = do_command(cmd, [id])
+
+    if len(rtVal) > 0:
+        return rtVal[0]['quantity_changed']
+
+    return 0

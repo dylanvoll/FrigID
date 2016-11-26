@@ -43,5 +43,7 @@ def remove_grocery(upc):
     id = get_grocery_id(upc)
     cmd = "DELETE FROM inventory WHERE grocery_id = ?"
     do_command_no_return(cmd, [id])
+    cmd = "DELETE FROM changes where grocery_id = ?"
+    do_command_no_return(cmd, [id])
     cmd = "DELETE FROM grocery where id = ?"
     do_command_no_return(cmd, [id])

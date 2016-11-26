@@ -24,13 +24,19 @@ def update_inventory_from_ndef(list):
             continue
 
         if grocery_db_helper.grocery_exists(item['upc']):
+            itemCount += inventory_db_helper.get_chantity_changed(item['upc'])
+
+            inventory_db_helper.set_changes_count(grocery_db_helper.get_grocery_id(item['upc']), 0)
+
             invenntoryId = inventory_db_helper.get_first_inventory(item['upc'])
             if invenntoryId != -1:  # Case where we know that we have to figure out the inventory count
                 inventoryCount = inventory_db_helper.get_inventory_count(item['upc'])
-                if inventoryCount != itemCount:
+
+                if itemCount < 0:  # If both the Pi and the app checkout all of the same grocery
+                    inventory_db_helper.resolve_inventory_count(item['upc'], inventoryCount, 0)
+                elif inventoryCount != itemCount:
                     inventory_db_helper.resolve_inventory_count(item['upc'], inventoryCount, itemCount)
-                else:
-                    pass
+
             else:  # This branch saves us a DB call
                 inventory_db_helper.resolve_inventory_count(item['upc'], 0, itemCount)
         else:

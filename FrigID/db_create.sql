@@ -13,3 +13,10 @@ date_purchased DATE DEFAULT CURRENT_TIMESTAMP,
 FOREIGN KEY(grocery_id) REFERENCES grocery(id),
 FOREIGN KEY(user_id) REFERENCES user(id)
 );
+CREATE TABLE changes
+(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+grocery_id INTEGER NOT NULL,
+quantity_changed INTEGER NOT NULL,
+FOREIGN KEY(grocery_id) REFERENCES grocery(id)
+);
