@@ -42,7 +42,7 @@ def update_inventory_from_ndef(list):
         else:
             # Check-in item so we have it in the grocery table
             newItem = ingredient.Ingredient(item['upc'])
-            newItem.check_in()
+            newItem.check_in(False)
 
             if itemCount > 1:
                 inventory_db_helper.resolve_inventory_count(item['upc'], 1, itemCount)  # Take care of the rest

@@ -37,31 +37,33 @@ def get_current_inventory():
     return rtVal
 
 
-def add_grocery_to_inventory(groceryId):
+def add_grocery_to_inventory(groceryId, changes = True):
     cmd = "INSERT INTO inventory (grocery_id) VALUES(?)"
     rtVal = do_insert(cmd, [groceryId])
 
-    if get_changes_count(groceryId) > 0:
-        update_changes_count(groceryId, 1)
-    else:
-        add_to_changes(groceryId, 1)
+    if changes:
+        if get_changes_count(groceryId) > 0:
+            update_changes_count(groceryId, 1)
+        else:
+            add_to_changes(groceryId, 1)
 
     return rtVal
 
 
-def checkout_grocery(upc):
+def checkout_grocery(upc, changes = True):
     id = get_first_inventory(upc)
     cmd = "DELETE FROM inventory WHERE id = ?"
     do_command_no_return(cmd, [id])
 
     groceryId = get_grocery_id(upc)
 
-    changesCount = get_changes_count(groceryId)
+    if changes:
+        changesCount = get_changes_count(groceryId)
 
-    if changesCount > 0:
-        update_changes_count(groceryId, -1)
-    else:
-        add_to_changes(groceryId, -1)
+        if changesCount > 0:
+            update_changes_count(groceryId, -1)
+        else:
+            add_to_changes(groceryId, -1)
 
 
 def get_inventory_count(upc):
@@ -76,9 +78,9 @@ def resolve_inventory_count(upc, currentCount, newCount):
     id = get_grocery_id(upc)
     for i in range(abs(currentCount-newCount)):
         if currentCount < newCount:
-            add_grocery_to_inventory(id)
+            add_grocery_to_inventory(id, False)
         else:
-            checkout_grocery(upc)
+            checkout_grocery(upc, False)
 
 
 def get_changes_count(groceryId):

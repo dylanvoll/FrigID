@@ -23,7 +23,11 @@ def grocery_input(upc, name):
 def get_grocery_id(upc):
     cmd = "SELECT id FROM grocery WHERE upc = ?"
     rtVal = do_command(cmd, [upc])
-    return rtVal[0]['id']
+
+    if len(rtVal) > 0:
+        return rtVal[0]['id']
+    else:
+        return -1
 
 
 def get_grocery_name(upc):
@@ -41,9 +45,11 @@ def grocery_exists(upc):
 
 def remove_grocery(upc):
     id = get_grocery_id(upc)
-    cmd = "DELETE FROM inventory WHERE grocery_id = ?"
-    do_command_no_return(cmd, [id])
-    cmd = "DELETE FROM changes where grocery_id = ?"
-    do_command_no_return(cmd, [id])
-    cmd = "DELETE FROM grocery where id = ?"
-    do_command_no_return(cmd, [id])
+
+    if id != -1:
+        cmd = "DELETE FROM inventory WHERE grocery_id = ?"
+        do_command_no_return(cmd, [id])
+        cmd = "DELETE FROM changes where grocery_id = ?"
+        do_command_no_return(cmd, [id])
+        cmd = "DELETE FROM grocery where id = ?"
+        do_command_no_return(cmd, [id])

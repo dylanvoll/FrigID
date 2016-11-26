@@ -8,19 +8,19 @@ class Ingredient(object):
         self.upc = upc
         self.name = self.__get_name(upc)
 
-    def check_in(self):
+    def check_in(self, changes=True):
         if grocery_db_helper.grocery_exists(self.upc):
             groceryId = grocery_db_helper.get_grocery_id(self.upc)
-            inventory_db_helper.add_grocery_to_inventory(groceryId)
         else:
             groceryId = grocery_db_helper.grocery_input(self.upc, self.name)
-            inventory_db_helper.add_grocery_to_inventory(groceryId)
 
-    def check_out(self):
+        inventory_db_helper.add_grocery_to_inventory(groceryId, changes)
+
+    def check_out(self, changes=True):
         if not inventory_db_helper.exists_in_inventory(self.upc):
             return
         else:
-            inventory_db_helper.checkout_grocery(self.upc)
+            inventory_db_helper.checkout_grocery(self.upc, changes)
 
     def __get_name(self, upc):
         resultDict = grocery_db_helper.get_grocery(upc)
