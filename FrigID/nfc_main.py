@@ -1,6 +1,7 @@
 import errno
 import signal
 import sys
+import time
 
 import nfc
 
@@ -21,32 +22,37 @@ signal.signal(signal.SIGINT, end_read)
 
 def connected(tag):
     print("Tag: {}\n".format(tag))
-
-    if tag.ndef.is_readable:
+    emptyTag = False
+    if tag is not None:
         if tag.ndef is not None:
-            if tag.ndef.length > 0:
-                records = tag.ndef.message[0]
-                if records.type == "urn:nfc:wkt:T":
-                    currentText = nfc.ndef.TextRecord(records)
-                    print("Current Text:")
-                    print(currentText.text)
+            if tag.ndef.is_readable:
+                if tag.ndef is not None:
+                    if tag.ndef.length > 0:
+                        records = tag.ndef.message[0]
+                        if records.type == "urn:nfc:wkt:T":
+                            currentText = nfc.ndef.TextRecord(records)
+                            print("Current Text:")
+                            print(currentText.text)
+                        else:
+                            print("No text record found")
+                    else:
+                        emptyTag = True
+                        print("Empty Card")
                 else:
-                    print("No text record found")
+                    print("No NDEF Maybe format?")
             else:
-                print("Empty Card")
-        else:
-            print("No NDEF Maybe format?")
-    else:
-        print("Card not readable")
+                print("Card not readable")
 
-    nfc_helper.update_inventory_from_ndef(currentText.text)
-    textRecord = nfc_helper.get_inventory_ndef()
+            if not emptyTag:
+                nfc_helper.update_inventory_from_ndef(currentText.text)
 
-    print("New Record:")
-    print(textRecord.text)
+            textRecord = nfc_helper.get_inventory_ndef()
 
-    if tag.ndef.is_writeable:
-        tag.ndef.message = nfc.ndef.Message(textRecord)
+            print("New Record:")
+            print(textRecord.text)
+
+            if tag.ndef.is_writeable:
+                tag.ndef.message = nfc.ndef.Message(textRecord)
 
     return True
 
@@ -69,7 +75,9 @@ def pollNFC():
         clf.connect(rdwr={'on-connect': connected})
         print(clf)
     finally:
+        time.sleep(1)
         clf.close()
+
 
 
 def nfcLoop():
