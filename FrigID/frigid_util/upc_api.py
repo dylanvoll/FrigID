@@ -11,7 +11,7 @@ def get_product_name(upc):
         if json['status']['code'] == '200':
             return json['product']['attributes']['product']
         else:
-            return ''
+            return None
     except:
         print(sys.exc_info()[0])
-        return ''
+        return None
