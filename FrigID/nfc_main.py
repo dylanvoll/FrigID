@@ -53,7 +53,7 @@ def connected(tag):
             if tag.ndef.is_writeable:
                 tag.ndef.message = nfc.ndef.Message(textRecord)
 
-    return True
+    return False
 
 
 def pollNFC():
