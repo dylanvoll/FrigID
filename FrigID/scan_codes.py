@@ -26,12 +26,8 @@ def upcLoop():
             if(in_out == 2):
                 item = ingredient.Ingredient(upc)
                 item.check_out()
+            nfc_main.pollNFC()
 
 
 if __name__ == "__main__":
-    jobs = []
-    p = multiprocessing.Process(target=nfc_main.nfcLoop)
-    p2 = multiprocessing.Process(target=upcLoop)
-    jobs.append(p)
-    p.start()
     upcLoop()

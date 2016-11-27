@@ -1,7 +1,6 @@
 import errno
 import signal
 import sys
-import time
 
 import nfc
 
@@ -75,7 +74,6 @@ def pollNFC():
         clf.connect(rdwr={'on-connect': connected})
         print(clf)
     finally:
-        time.sleep(1)
         clf.close()
 
 
