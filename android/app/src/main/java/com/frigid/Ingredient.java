@@ -4,6 +4,8 @@ import android.view.View;
 
 import org.json.JSONObject;
 
+import java.util.Comparator;
+
 /**
  * Created by Dylan on 11/14/2016.
  */
@@ -62,5 +64,16 @@ public class Ingredient {
             e.printStackTrace();
         }
         return object;
+    }
+}
+
+class IngredientComparator implements Comparator<Ingredient>{
+    @Override
+    public int compare(Ingredient i1, Ingredient i2) {
+        String one = i1.longName;
+        String two = i2.longName;
+        if(i1.shortName!=null)one = i1.shortName;
+        if(i2.shortName!=null)two = i2.shortName;
+        return one.compareTo(two);
     }
 }

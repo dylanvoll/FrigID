@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "551950357712",
+    "firebase_url": "https://frigid-bb414.firebaseio.com",
+    "project_id": "frigid-bb414",
+    "storage_bucket": "frigid-bb414.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:551950357712:android:d6e7877929978487",
+        "android_client_info": {
+          "package_name": "com.frigid"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "551950357712-ao3gs250aj2enjfr418ec2q9eec7qdht.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAUUgVIEJcAnML1toHtWJ_mfhxdB44-6DY"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

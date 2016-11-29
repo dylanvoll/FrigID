@@ -21,11 +21,13 @@ public class IngredientArrayAdapter extends ArrayAdapter<Ingredient> {
 
     Context context;
     AppCompatActivity activity;
+    int layout;
 
-    public IngredientArrayAdapter(Context context, AppCompatActivity activity, List<Ingredient> objects) {
+    public IngredientArrayAdapter(Context context, AppCompatActivity activity, List<Ingredient> objects, int layout) {
         super(context, R.layout.ingredient_row, objects);
         this.context = context;
         this.activity = activity;
+        this.layout = layout;
     }
 
     static class ViewHolder {
@@ -41,7 +43,7 @@ public class IngredientArrayAdapter extends ArrayAdapter<Ingredient> {
         final ViewHolder holder;
 
         if (convertView == null) {
-            convertView = LayoutInflater.from(getContext()).inflate(R.layout.ingredient_row, parent, false);
+            convertView = LayoutInflater.from(getContext()).inflate(layout, parent, false);
             holder = new ViewHolder();
             holder.name = (TextView) convertView.findViewById(R.id.name);
             holder.quantity = (TextView) convertView.findViewById(R.id.quantity);
@@ -58,7 +60,9 @@ public class IngredientArrayAdapter extends ArrayAdapter<Ingredient> {
         else{
             holder.name.setText(ingredient.longName);
         }
-        holder.quantity.setText("x" + ingredient.quantity);
+        if(layout == R.layout.ingredient_row) {
+            holder.quantity.setText("x" + ingredient.quantity);
+        }
 
         notifyDataSetChanged();
 

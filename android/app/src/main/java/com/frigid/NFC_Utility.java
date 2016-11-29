@@ -84,7 +84,11 @@ public class NFC_Utility {
             String languageCode = new String(payload, 1, languageCodeLength, "US-ASCII");
             // e.g. "en"
 
-            return new String(payload, languageCodeLength + 1, payload.length - languageCodeLength - 1, textEncoding);
+            String result = new String(payload, languageCodeLength + 1, payload.length - languageCodeLength - 1, textEncoding);
+
+            //System.out.println(result.split("\\n")[0]);
+
+            return result.substring(result.indexOf('\n')+1);
         }
 
         @Override

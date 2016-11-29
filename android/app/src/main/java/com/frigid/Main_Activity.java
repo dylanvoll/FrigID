@@ -42,6 +42,8 @@ import android.widget.TabHost;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.iid.FirebaseInstanceId;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -66,8 +68,8 @@ import java.util.Set;
 
 public class Main_Activity extends AppCompatActivity {
 
-    ArrayList<Ingredient> inventory = new ArrayList<>();
-    ArrayList<Ingredient> groceries = new ArrayList<>();
+    static ArrayList<Ingredient> inventory = new ArrayList<>();
+    static ArrayList<Ingredient> groceries = new ArrayList<>();
     ListView inventoryList;
     ListView groceriesList;
     static IngredientArrayAdapter inventoryAdapter;
@@ -87,6 +89,9 @@ public class Main_Activity extends AppCompatActivity {
         mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
         nfc_util = new NFC_Utility(getApplicationContext(),this);
         // create the TabHost that will contain the Tabs
+
+        System.out.println("!@!@! Token is: " + FirebaseInstanceId.getInstance().getToken());
+
         final TabHost tabHost = (TabHost)findViewById(R.id.tabhost);
 
         tabHost.setup();
@@ -138,8 +143,10 @@ public class Main_Activity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
                         if(picker.getValue() == i.quantity) {
-                            removeIngredient(i.upc);
+                            ingredientChange(i.upc,i.quantity*-1);
                             inventory.remove(position);
+                            i.quantity = 0;
+                            groceries.add(i);
                             refreshAdapters();
                         }
                         else{
@@ -207,8 +214,8 @@ public class Main_Activity extends AppCompatActivity {
         final ProgressBar waiting = (ProgressBar)findViewById(R.id.waiting);
         final TabHost tabHost = (TabHost)findViewById(R.id.tabhost);
 
-        inventoryAdapter = new IngredientArrayAdapter(getApplicationContext(),this,inventory);
-        groceryListAdapter = new IngredientArrayAdapter(getApplicationContext(),this,groceries);
+        inventoryAdapter = new IngredientArrayAdapter(getApplicationContext(),this,inventory,R.layout.ingredient_row);
+        groceryListAdapter = new IngredientArrayAdapter(getApplicationContext(),this,groceries,R.layout.ingredient_row_grocery);
         inventoryList.setAdapter(inventoryAdapter);
         groceriesList.setAdapter(groceryListAdapter);
         mListView = inventoryList;
@@ -238,6 +245,8 @@ public class Main_Activity extends AppCompatActivity {
     }
 
     public static void refreshAdapters(){
+        Collections.sort(inventory,new IngredientComparator());
+        Collections.sort(groceries,new IngredientComparator());
         inventoryAdapter.notifyDataSetChanged();
         groceryListAdapter.notifyDataSetChanged();
     }
@@ -374,6 +383,7 @@ public class Main_Activity extends AppCompatActivity {
                     e.printStackTrace();
                 }
             }
+            Collections.sort(ingredients,new IngredientComparator());
             adapter = new CustomSpinnerAdapter(this,ingredients);
         }
 
@@ -584,7 +594,7 @@ public class Main_Activity extends AppCompatActivity {
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.other_fucking_app) {
             return true;
         }
 
@@ -669,7 +679,7 @@ public class Main_Activity extends AppCompatActivity {
 
     protected void writeTag(Tag tag,String ndef){
         if(nfc_util.writableTag(tag)) {
-            //writeTag here
+            ndef = String.format("%s %s %d\r\n",getString(R.string.FCM_TOKEN),FirebaseInstanceId.getInstance().getToken(),2) + ndef;
             NFC_Utility.WriteResponse wr = nfc_util.writeTag(nfc_util.getTagAsNdef(ndef),tag);
             String message = (wr.getStatus() == 1? "Success: " : "Failed: ") + wr.getMessage();
             Toast.makeText(getApplicationContext(),message,Toast.LENGTH_SHORT).show();
