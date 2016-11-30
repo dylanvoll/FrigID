@@ -47,7 +47,6 @@ public class NFC_Utility {
             tag = params[0];
 
             Ndef ndef = Ndef.get(tag);
-            String ndefString = null;
             if (ndef == null) {
                 // NDEF is not supported by this Tag.
                 return null;
@@ -86,7 +85,7 @@ public class NFC_Utility {
 
             String result = new String(payload, languageCodeLength + 1, payload.length - languageCodeLength - 1, textEncoding);
 
-            //System.out.println(result.split("\\n")[0]);
+            System.out.println(result);
 
             return result.substring(result.indexOf('\n')+1);
         }
@@ -94,23 +93,26 @@ public class NFC_Utility {
         @Override
         protected void onPostExecute(String result) {
             try {
-              //  if (result.trim().equals(activity.readFile(new File(activity.getFilesDir(), "ndef_result.txt")).trim())){System.out.println("No updates from scan");
-                //activity.writeTag(result);
-                //activity.loadUI();
-            //}
-               // else {
-
-                    activity.inventory.clear();
-                    activity.groceries.clear();
-                    String ndef = activity.updateNdef(result.trim());
-                    activity.loadUI();
-                    activity.saveToFile(ndef.trim());
-                    activity.writeTag(tag,ndef.trim());
-                    String[] upcs = ndef.trim().split("\\n");
-                    for (String upc_line : upcs) {
-                        if(Integer.parseInt(upc_line.split(" ")[1].trim()) > -1) {
-                            new upcToIngredients(upc_line).execute();
+                System.out.println(result);
+                    if(result == null || result.isEmpty()){
+                        System.out.println("this is null");
+                        activity.loadUI();
+                        activity.writeTag(tag,"");
+                    }
+                    else {
+                        activity.loadUI();
+                        activity.inventory.clear();
+                        activity.groceries.clear();
+                        String ndef = activity.updateNdef(result.trim());
+                        activity.saveToFile(ndef.trim());
+                        activity.writeTag(tag, ndef.trim());
+                        String[] upcs = ndef.trim().split("\\n");
+                        for (String upc_line : upcs) {
+                            if (Integer.parseInt(upc_line.split(" ")[1].trim()) > -1) {
+                                new upcToIngredients(upc_line).execute();
+                            }
                         }
+                        activity.refreshAdapters();
                     }
                // }
             }

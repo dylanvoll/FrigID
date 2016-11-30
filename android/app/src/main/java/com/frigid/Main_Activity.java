@@ -321,15 +321,16 @@ public class Main_Activity extends AppCompatActivity {
 
             @Override
             public void onClick(DialogInterface dialog, int id) {
-                if(picker.getValue() == 0) {
-                    Ingredient i = (Ingredient) spinner.getSelectedItem();
-                    i.quantity = 0;
-                    sanityCheckGroceries(i);
-                }
-                else{
-                    Ingredient i = (Ingredient) spinner.getSelectedItem();
-                    i.quantity = picker.getValue();
-                    sanityCheckInventory(i);
+                if(spinner.getSelectedItem() != null) {
+                    if (picker.getValue() == 0) {
+                        Ingredient i = (Ingredient) spinner.getSelectedItem();
+                        i.quantity = 0;
+                        sanityCheckGroceries(i);
+                    } else {
+                        Ingredient i = (Ingredient) spinner.getSelectedItem();
+                        i.quantity = picker.getValue();
+                        sanityCheckInventory(i);
+                    }
                 }
             }
         }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -615,6 +616,32 @@ public class Main_Activity extends AppCompatActivity {
             return true;
         }
 
+        if(id == R.id.notifications){
+            AlertDialog.Builder builder = new AlertDialog.Builder(Main_Activity.this);
+            LayoutInflater inflater = getLayoutInflater();
+            final View view = inflater.inflate(R.layout.notifications_dialog,null);
+            final NumberPicker picker = (NumberPicker) view.findViewById(R.id.number_picker);
+            picker.setMinValue(0);
+            picker.setMaxValue(3);
+            picker.setDisplayedValues(new String[]{"Never","1 Week", "2 Weeks", "3 Weeks"});
+            builder.setView(view).setPositiveButton("Add", new DialogInterface.OnClickListener() {
+
+                @Override
+                public void onClick(DialogInterface dialog, int id) {
+                     getSharedPreferences("frigid",Context.MODE_PRIVATE).edit().putInt("notifications",picker.getValue()).commit();
+                }
+            }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int id) {
+                    dialog.dismiss();
+                }
+            });
+            AlertDialog dialog = builder.create();
+            dialog.setTitle(Html.fromHtml("<font color='#000000'>Notifications</font>"));
+            dialog.setCanceledOnTouchOutside(false);
+            dialog.show();
+        }
+
         return super.onOptionsItemSelected(item);
     }
 
@@ -673,6 +700,7 @@ public class Main_Activity extends AppCompatActivity {
                 if (searchedTech.equals(tech)) {
                     NFC_Utility.NdefReaderTask reader = nfc_util.new NdefReaderTask();
                     reader.execute(tag);
+                    System.out.println("Try");
                     break;
                 }
             }
@@ -692,6 +720,7 @@ public class Main_Activity extends AppCompatActivity {
                     }
 
                 }
+                refreshAdapters();
             }
             catch (Exception e){e.printStackTrace();}
         }
@@ -705,7 +734,7 @@ public class Main_Activity extends AppCompatActivity {
 
     protected void writeTag(Tag tag,String ndef){
         if(nfc_util.writableTag(tag)) {
-            ndef = String.format("!%s %s %d\r\n",getString(R.string.FCM_TOKEN),FirebaseInstanceId.getInstance().getToken(),2) + ndef;
+            ndef = String.format("%s %s %d\r\n",getString(R.string.FCM_TOKEN),FirebaseInstanceId.getInstance().getToken(),getSharedPreferences("frigid",Context.MODE_PRIVATE).getInt("notifications",0)) + ndef;
             NFC_Utility.WriteResponse wr = nfc_util.writeTag(nfc_util.getTagAsNdef(ndef),tag);
             String message = (wr.getStatus() == 1? "Success: " : "Failed: ") + wr.getMessage();
             Toast.makeText(getApplicationContext(),message,Toast.LENGTH_SHORT).show();

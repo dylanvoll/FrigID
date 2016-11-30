@@ -15,6 +15,7 @@ import android.nfc.tech.Ndef;
 import android.nfc.tech.NfcF;
 import android.os.CountDownTimer;
 import android.os.Parcelable;
+import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -55,9 +56,19 @@ public class Login extends AppCompatActivity {
             mTextView = (TextView) findViewById(R.id.textView);
 
             if (mNfcAdapter != null) {
-                mTextView.setText("Read an NFC tag");
-            } else {
-                mTextView.setText("This phone is not NFC enabled.");
+                if(mNfcAdapter.isEnabled()){}
+             else{
+
+                    mTextView.setText("This phone is not NFC enabled. Click here to enable NFC.");
+                    mTextView.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            Intent setnfc = new Intent(Settings.ACTION_NFC_SETTINGS);
+                            startActivity(setnfc);
+                            finish();
+                        }
+                    });
+                }
             }
 
             // create an intent with tag data and deliver to this activity
@@ -85,10 +96,17 @@ public class Login extends AppCompatActivity {
                     outputStream.flush();
                     outputStream.close();
                 }
+                FileOutputStream outputStream;
+                outputStream = openFileOutput("ingredients.json", Context.MODE_PRIVATE);
+                outputStream.write("{}".getBytes());
+                outputStream.flush();
+                outputStream.close();
             }
             catch (Exception e){
                 e.printStackTrace();
             }
+
+            getSharedPreferences("frigid",Context.MODE_PRIVATE).edit().putInt("notifications",0).commit();
         }
 
 
@@ -165,6 +183,7 @@ public class Login extends AppCompatActivity {
         if(tag != null){
             Intent i = new Intent(this,Main_Activity.class);
             i.putExtras(intent);
+            i.putExtra("data",intent.getStringExtra("data"));
             startActivity(i);
         }
 

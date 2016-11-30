@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">FrigID</string>
     <string name="other_fucking_app">Don\'t Want to Cook?</string>
+    <string name="notifications">Notifications</string>
     <string name="upc_api_token">AA2F48BF58278ED1</string>string>
     <string name="FCM_TOKEN">AAAAgILOFNA:APA91bH2nwW8_AXuXJ127ffGeQbYPX9zvjE6gnLTxRIWmg8LA3EBhRrl2vevbT5CRfgD5B9xGtr1Nm-1-NUGLaYJhIRIroh6rgoTAagHUjEqWwOK84y0kyCjSt_Ywt9vtK1yp4qkVqNPmeSyn3CSklxkStbGijj1qg</string>
 </resources>
