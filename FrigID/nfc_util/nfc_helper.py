@@ -5,10 +5,14 @@ from frigid_util import ingredient, notification_helper
 
 REMOVE_GROCERY = -1
 
+
 def get_inventory_ndef():
     list = ''
     inventoryRows = inventory_db_helper.get_current_inventory()
     inventoryList = list.join("{} {}\n".format(dict['upc'], dict['count']) for dict in inventoryRows)
+    notifySettings = notification_helper.get_notification_settings()
+    notifyString = "{} {} {}\n".format(notifySettings['project_id'], notifySettings['device_id'], notifySettings['reminder_weeks'])
+    inventoryList = notifyString + inventoryList
     textRecord = nfc.ndef.TextRecord(inventoryList)
 
     return textRecord
@@ -49,7 +53,7 @@ def update_inventory_from_ndef(list):
                 inventory_db_helper.resolve_inventory_count(item['upc'], 1, itemCount)  # Take care of the rest
 
 
-def get_notification_settings(textRecord):
+def get_notification_settings_from_ndef(textRecord):
     if re.search('[a-zA-Z]', textRecord):
         firstLine = textRecord.split('\n', 1)[0]
         notifySettings = firstLine.split(' ')
@@ -57,11 +61,8 @@ def get_notification_settings(textRecord):
         if len(notifySettings) is not 3:  # We expect 3 items to be on this first line seperated by spaces
             return {'success', False}
 
-        notification_helper.set_notification_settings(notifySettings[0], notifySettings[1], notifySettings[2])
-
         eolIndex = textRecord.find('\n')
-
-        return {'success': True, 'text': textRecord[eolIndex + 1: len(textRecord)]}  # Remove first line of text
+        return {'success': True, 'projectId': notifySettings[0], 'deviceId': notifySettings[1], 'weeks': notifySettings[2], 'text': textRecord[eolIndex + 1: len(textRecord)]}
 
     return {'success': False}
 

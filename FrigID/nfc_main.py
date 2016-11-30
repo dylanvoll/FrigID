@@ -5,6 +5,7 @@ import sys
 import nfc
 
 from nfc_util import nfc_helper
+from frigid_util import notification_helper
 
 clf = None
 continue_reading = True
@@ -43,11 +44,14 @@ def connected(tag):
                 print("Card not readable")
 
             if not emptyTag:
-                resultDict = nfc_helper.get_notification_settings(currentText.text)
+                resultDict = nfc_helper.get_notification_settings_from_ndef(currentText.text)
+
                 if resultDict['success'] is True:
                     print("Notification Settings Updated")
-                    currentText.text = resultDict['text']
-                nfc_helper.update_inventory_from_ndef(currentText.text)
+                    notification_helper.set_notification_settings(resultDict['projectId'], resultDict['deviceId'], resultDict['weeks'])
+                    nfc_helper.update_inventory_from_ndef(resultDict['text'])
+                else:
+                    nfc_helper.update_inventory_from_ndef(currentText.text)
 
             textRecord = nfc_helper.get_inventory_ndef()
 
