@@ -1,6 +1,7 @@
 import nfc.ndef
+import re
 from db_util import inventory_db_helper, grocery_db_helper
-from frigid_util import ingredient
+from frigid_util import ingredient, notification_helper
 
 REMOVE_GROCERY = -1
 
@@ -47,6 +48,22 @@ def update_inventory_from_ndef(list):
             if itemCount > 1:
                 inventory_db_helper.resolve_inventory_count(item['upc'], 1, itemCount)  # Take care of the rest
 
+
+def get_notification_settings(textRecord):
+    if re.search('[a-zA-Z]', textRecord):
+        firstLine = textRecord.split('\n', 1)[0]
+        notifySettings = firstLine.split(' ')
+
+        if len(notifySettings) is not 3:  # We expect 3 items to be on this first line seperated by spaces
+            return {'success', False}
+
+        notification_helper.set_notification_settings(notifySettings[0], notifySettings[1], notifySettings[2])
+
+        eolIndex = textRecord.find('\n')
+
+        return {'success': True, 'text': textRecord[eolIndex + 1: len(textRecord)]}  # Remove first line of text
+
+    return {'success': False}
 
 def __parse_list(list):
     split = list.split('\n')

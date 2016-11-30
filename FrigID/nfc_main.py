@@ -43,6 +43,10 @@ def connected(tag):
                 print("Card not readable")
 
             if not emptyTag:
+                resultDict = nfc_helper.get_notification_settings(currentText.text)
+                if resultDict['success'] is True:
+                    print("Notification Settings Updated")
+                    currentText.text = resultDict['text']
                 nfc_helper.update_inventory_from_ndef(currentText.text)
 
             textRecord = nfc_helper.get_inventory_ndef()
