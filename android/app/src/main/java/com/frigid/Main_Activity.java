@@ -459,6 +459,8 @@ public class Main_Activity extends AppCompatActivity {
                     break;
                 }
             }
+            JSONObject changeBlock = json.getJSONObject("ingredients").getJSONObject("change");
+            if(changeBlock.has(upc)){changeBlock.remove(upc);}
             FileOutputStream outputStream = openFileOutput("ingredients_change.json", Context.MODE_PRIVATE);
             outputStream.write(json.toString().getBytes());
             outputStream.flush();
@@ -485,7 +487,13 @@ public class Main_Activity extends AppCompatActivity {
             fis.close();
             json = new JSONObject(jsonString);
             JSONObject changeBlock = json.getJSONObject("ingredients").getJSONObject("change");
-            changeBlock.put(upc,quantity);
+            if(changeBlock.has(upc)){
+                int change = changeBlock.getInt(upc);
+                changeBlock.put(upc,change + quantity);
+            }
+            else {
+                changeBlock.put(upc, quantity);
+            }
             FileOutputStream outputStream = openFileOutput("ingredients_change.json", Context.MODE_PRIVATE);
             outputStream.write(json.toString().getBytes());
             outputStream.flush();
@@ -565,8 +573,17 @@ public class Main_Activity extends AppCompatActivity {
                 }
             }
             inventory.add(i);
-            addIngredient(i.upc,i.quantity);
-            refreshAdapters();
+            boolean change = false;
+            try{
+                for(String line : readFile(new File(getFilesDir(), "ndef_result.txt")).split("\\n")) {
+                    if(line.split(" ")[0].equals(i.upc))change = true;
+                }
+                    if(change) ingredientChange(i.upc,i.quantity);
+                    else addIngredient(i.upc,i.quantity);
+                    refreshAdapters();
+            }
+            catch(Exception e){}
+
         }
         else{
             temp.quantity = temp.quantity+i.quantity;
@@ -663,10 +680,13 @@ public class Main_Activity extends AppCompatActivity {
         else{
             loadUI();
             try {
-                String[] upcs = readFile(new File(getFilesDir(), "ndef_result.txt")).split("\\n");
+                inventory.clear();
+                groceries.clear();
+                String ndef = updateNdef(readFile(new File(getFilesDir(), "ndef_result.txt")).trim());
+                loadUI();
                 System.out.println("Reading from file");
-                for (String upc_line : upcs) {
-                    if(Integer.parseInt(upc_line.split(" ")[1].trim()) != -1) {
+                for (String upc_line : ndef.split("\\n")) {
+                    if(Integer.parseInt(upc_line.split(" ")[1].trim()) > -1) {
                         NFC_Utility.upcToIngredients task = nfc_util.new upcToIngredients(upc_line);
                         task.execute();
                     }
@@ -675,14 +695,27 @@ public class Main_Activity extends AppCompatActivity {
             }
             catch (Exception e){e.printStackTrace();}
         }
+        String json = null;
+        if(intent.getExtras()!=null){
+            json = intent.getExtras().getString("data");
+            System.out.println(intent.getStringExtra("123456"));
+        }
+
     }
 
     protected void writeTag(Tag tag,String ndef){
         if(nfc_util.writableTag(tag)) {
-            ndef = String.format("%s %s %d\r\n",getString(R.string.FCM_TOKEN),FirebaseInstanceId.getInstance().getToken(),2) + ndef;
+            ndef = String.format("!%s %s %d\r\n",getString(R.string.FCM_TOKEN),FirebaseInstanceId.getInstance().getToken(),2) + ndef;
             NFC_Utility.WriteResponse wr = nfc_util.writeTag(nfc_util.getTagAsNdef(ndef),tag);
             String message = (wr.getStatus() == 1? "Success: " : "Failed: ") + wr.getMessage();
             Toast.makeText(getApplicationContext(),message,Toast.LENGTH_SHORT).show();
+            try {
+                FileOutputStream outputStream = openFileOutput("ingredients_change.json", Context.MODE_PRIVATE);
+                outputStream.write("{\"ingredients\":{\"add\":{},\"change\":{},\"remove\":[]}}".getBytes());
+                outputStream.flush();
+                outputStream.close();
+            }
+            catch(Exception e){e.printStackTrace();}
         }
     }
 
@@ -755,7 +788,9 @@ public class Main_Activity extends AppCompatActivity {
                     for(int i = 0; i<lines.length; i++){
                         if(upcs[i].equals(upc)){
                             if(quantities[i] == -1) quantities[i] = quantities[i] + quantity + 1;
-                            else quantities[i] = quantities[i] + quantity;
+                            else {quantities[i] = quantities[i] + quantity;
+                            System.out.println(quantities[i]);
+                                System.out.println(quantity);}
                             changed = true;
                             break;
                         }
@@ -780,11 +815,6 @@ public class Main_Activity extends AppCompatActivity {
                 int quantity = it2.next();
                 ndefNew += String.format("%s %d\r\n",upc,quantity);
             }
-
-            FileOutputStream outputStream = openFileOutput("ingredients_change.json", Context.MODE_PRIVATE);
-            outputStream.write("{\"ingredients\":{\"add\":{},\"change\":{},\"remove\":[]}}".getBytes());
-            outputStream.flush();
-            outputStream.close();
         }
         catch (Exception e){
             e.printStackTrace();

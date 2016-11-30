@@ -102,13 +102,13 @@ public class NFC_Utility {
 
                     activity.inventory.clear();
                     activity.groceries.clear();
-                    activity.loadUI();
                     String ndef = activity.updateNdef(result.trim());
+                    activity.loadUI();
                     activity.saveToFile(ndef.trim());
                     activity.writeTag(tag,ndef.trim());
                     String[] upcs = ndef.trim().split("\\n");
                     for (String upc_line : upcs) {
-                        if(Integer.parseInt(upc_line.split(" ")[1].trim()) != -1) {
+                        if(Integer.parseInt(upc_line.split(" ")[1].trim()) > -1) {
                             new upcToIngredients(upc_line).execute();
                         }
                     }
@@ -125,6 +125,7 @@ public class NFC_Utility {
 
         UPC_Api_Utility api = new UPC_Api_Utility(context);
         String upc_line = null;
+        Ingredient i = null;
 
 
         public upcToIngredients(String upc_line){
@@ -153,26 +154,21 @@ public class NFC_Utility {
                             if (json.has(upc)) {
                                 if (quantity == 0) {
                                     Ingredient i = new Ingredient(upc, quantity, json.getJSONObject(upc));
-                                    boolean add = true;
-
-                                    if(add)activity.groceries.add(i);
+                                    this.i = i;
                                 } else {
                                     Ingredient i = new Ingredient(upc, quantity, json.getJSONObject(upc));
-                                    boolean add = true;
-                                    if(add)activity.inventory.add(i);
+                                    this.i = i;
                                 }
                             }
                             else{
                                 String longName = api.getNameFromUpc(upc);
                                 if (quantity == 0) {
                                     Ingredient i = new Ingredient(upc, quantity, null, longName);
-                                    boolean add = true;
-                                    if(add)activity.groceries.add(i);
+                                    this.i = i;
                                     activity.addIngredientToFile(i);
                                 } else {
                                     Ingredient i = new Ingredient(upc, quantity, null, longName);
-                                    boolean add = true;
-                                    if(add)activity.inventory.add(i);
+                                    this.i = i;
                                     activity.addIngredientToFile(i);
                                 }
                             }
@@ -181,13 +177,11 @@ public class NFC_Utility {
                                 String longName = api.getNameFromUpc(upc);
                                 if (quantity == 0) {
                                     Ingredient i = new Ingredient(upc, quantity, null, longName);
-                                    boolean add = true;
-                                    if(add)activity.groceries.add(i);
+                                    this.i = i;
                                     activity.addIngredientToFile(i);
                                 } else {
                                     Ingredient i = new Ingredient(upc, quantity, null, longName);
-                                    boolean add = true;
-                                    if(add)activity.inventory.add(i);
+                                    this.i = i;
                                     activity.addIngredientToFile(i);
                                 }
                             }
@@ -203,11 +197,11 @@ public class NFC_Utility {
                     String longName = api.getNameFromUpc(upc);
                     if (quantity == 0) {
                         Ingredient i = new Ingredient(upc, quantity, null, longName);
-                        activity.groceries.add(i);
+                        this.i = i;
                         activity.addIngredientToFile(i);
                     } else {
                         Ingredient i = new Ingredient(upc, quantity, null, longName);
-                        activity.inventory.add(i);
+                        this.i = i;
                         activity.addIngredientToFile(i);
                     }
                 }
@@ -219,7 +213,8 @@ public class NFC_Utility {
 
         @Override
         protected void onPostExecute(String result) {
-
+            if(i.quantity == 0)activity.groceries.add(i);
+            else{activity.inventory.add(i);}
             activity.refreshAdapters();
         }
     }
