@@ -53,3 +53,21 @@ def remove_grocery(upc):
         do_command_no_return(cmd, [id])
         cmd = "DELETE FROM grocery where id = ?"
         do_command_no_return(cmd, [id])
+
+
+def produce_input(plu, name):
+    cmd = "INSERT INTO produce (name, plu) VALUES (?, ?)"
+    rtVal = do_insert(cmd, [name, plu])
+
+    return rtVal
+
+def get_produce(plu):
+    cmd = "SELECT name FROM produce WHERE plu = ?"
+    rtVal = do_command(cmd, [plu])
+
+    length = len(rtVal)
+
+    if length > 0:
+        return {'success': bool(len(rtVal)), 'grocery': rtVal[0]}
+
+    return {'success': bool(len(rtVal))}

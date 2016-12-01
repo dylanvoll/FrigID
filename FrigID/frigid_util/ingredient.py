@@ -23,10 +23,15 @@ class Ingredient(object):
             inventory_db_helper.checkout_grocery(self.upc, changes)
 
     def __get_name(self, upc):
-        resultDict = grocery_db_helper.get_grocery(upc)
+
+        if len(upc) != 4:
+            resultDict = grocery_db_helper.get_grocery(upc)
+        else:
+            resultDict = grocery_db_helper.get_produce(upc)
+
         if resultDict['success']:
             name = resultDict['grocery']['name']
-        else:
+        elif len(upc) > 4:
             name = upc_api.get_product_name(upc)
 
             #lets add this grocery to the DB to save API usage if we have a name, otherwise lets not in future hopes of retrieving a name
