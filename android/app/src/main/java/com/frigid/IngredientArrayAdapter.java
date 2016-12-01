@@ -58,10 +58,16 @@ public class IngredientArrayAdapter extends ArrayAdapter<Ingredient> {
             holder.name.setText(ingredient.shortName);
         }
         else{
-            holder.name.setText(ingredient.longName);
+            if(ingredient.longName != null) holder.name.setText(ingredient.longName);
         }
         if(layout == R.layout.ingredient_row) {
             holder.quantity.setText("x" + ingredient.quantity);
+        }
+        else if(layout == R.layout.expiring_row){
+            holder.quantity.setText(ingredient.quantity + "");
+        }
+        else{
+            //nothing
         }
 
         notifyDataSetChanged();

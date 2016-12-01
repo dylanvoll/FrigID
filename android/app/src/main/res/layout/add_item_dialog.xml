@@ -4,12 +4,11 @@
     android:layout_height="match_parent"
     android:weightSum="1">
 
-
-    <Spinner
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/spinner"
-        android:layout_margin="25dp" />
+        <Spinner
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/spinner"
+            android:layout_margin="25dp" />
 
     <TextView
         android:text="Quantity"

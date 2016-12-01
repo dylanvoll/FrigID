@@ -15,6 +15,7 @@ public class Ingredient {
     public String longName;
     public String shortName;
     public int quantity;
+    public boolean isPlu = false;
     IngredientArrayAdapter.ViewHolder view = null;
 
     public Ingredient(String upc,int quantity){
@@ -38,11 +39,34 @@ public class Ingredient {
         this.shortName = shortName;
     }
 
+    public Ingredient(String upc,int quantity, String shortName, String longName, boolean plu){
+        this.upc = upc;
+        this.quantity = quantity;
+        this.longName = longName;
+        this.shortName = shortName;
+        this.isPlu = plu;
+    }
+
     public Ingredient(String upc, int quantity, JSONObject object){
         this.upc = upc;
         this.quantity = quantity;
         this.longName = null;
         this.shortName = null;
+        try {
+            if(object.has("long_name")) this.longName = object.getString("long_name");
+            if(object.has("short_name")) this.shortName = object.getString("short_name");
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public Ingredient(String upc, int quantity, JSONObject object, boolean plu){
+        this.upc = upc;
+        this.quantity = quantity;
+        this.longName = null;
+        this.shortName = null;
+        this.isPlu = plu;
         try {
             if(object.has("long_name")) this.longName = object.getString("long_name");
             if(object.has("short_name")) this.shortName = object.getString("short_name");

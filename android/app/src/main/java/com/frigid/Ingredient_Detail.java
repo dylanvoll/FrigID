@@ -49,7 +49,7 @@ public class Ingredient_Detail extends AppCompatActivity {
 
     @Override
     public void onBackPressed(){
-        if(!short_name.getText().toString().isEmpty()) {
+        if(!short_name.getText().toString().isEmpty() && !i.isPlu) {
             i.shortName = short_name.getText().toString();
             File file = new File(getFilesDir(), "ingredients.json");
             FileOutputStream outputStream;

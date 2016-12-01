@@ -36,6 +36,7 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.NumberPicker;
 import android.widget.ProgressBar;
+import android.widget.SimpleAdapter;
 import android.widget.Spinner;
 import android.widget.SpinnerAdapter;
 import android.widget.TabHost;
@@ -43,6 +44,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.messaging.RemoteMessage;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -63,6 +65,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -316,6 +319,7 @@ public class Main_Activity extends AppCompatActivity {
         final NumberPicker picker = (NumberPicker) view.findViewById(R.id.number_picker);
         picker.setMinValue(0);
         picker.setMaxValue(20);
+        picker.setDisplayedValues(new String[]{"Grocery","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20"});
         spinner.setAdapter(getSpinnerAdapter());
         builder.setView(view).setPositiveButton("Add", new DialogInterface.OnClickListener() {
 
@@ -345,8 +349,75 @@ public class Main_Activity extends AppCompatActivity {
         dialog.show();
     }
 
-    private SpinnerAdapter getSpinnerAdapter(){
+    private IngredientArrayAdapter getExpiringAdapter(JSONObject data){
         JSONObject json = null;
+        JSONObject json2 = null;
+        String jsonString;
+        IngredientArrayAdapter adapter = null;
+        try {
+            FileInputStream fis = openFileInput("ingredients.json");
+            InputStreamReader isr = new InputStreamReader(fis);
+            BufferedReader bufferedReader = new BufferedReader(isr);
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                sb.append(line);
+            }
+            jsonString = sb.toString();
+            json = new JSONObject(jsonString);
+
+            isr = new InputStreamReader(getResources().openRawResource(R.raw.plu));
+            bufferedReader = new BufferedReader(isr);
+            sb = new StringBuilder();
+            while ((line = bufferedReader.readLine()) != null) {
+                sb.append(line);
+            }
+            jsonString = sb.toString();
+            json2 = new JSONObject(jsonString);
+            System.out.println(json2.toString());
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        finally{
+            ArrayList<Ingredient> ingredients = new ArrayList<>();
+            Iterator<?> keys = data.keys();
+
+            while( keys.hasNext() ) {
+                try {
+                    String key = (String) keys.next();
+                    if (json.has(key)) {
+                        JSONObject object1 = json.getJSONObject(key);
+                        String short_name = null;
+                        String long_name = null;
+                        if(object1.has("short_name"))short_name = object1.getString("short_name");
+                        if(object1.has("long_name"))long_name = object1.getString("long_name");
+                        ingredients.add(new Ingredient(key,data.getInt(key),short_name,long_name));
+                    }
+                    else{
+                        JSONObject object2 = json2.getJSONObject(key);
+                        String short_name = null;
+                        String long_name = null;
+                        if(object2.has("short_name"))short_name = object2.getString("short_name");
+                        if(object2.has("long_name"))long_name = object2.getString("long_name");
+                        ingredients.add(new Ingredient(key,data.getInt(key),short_name,long_name));
+                    }
+                }
+                catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+            Collections.sort(ingredients,new IngredientComparator());
+            adapter = new IngredientArrayAdapter(getBaseContext(),this,ingredients,R.layout.expiring_row);
+        }
+
+        return adapter;
+
+    }
+
+    private SpinnerAdapter getSpinnerAdapter(){
+        JSONObject json1 = null;
+        JSONObject json2 = null;
         String jsonString;
         CustomSpinnerAdapter adapter = null;
         try {
@@ -359,20 +430,31 @@ public class Main_Activity extends AppCompatActivity {
                 sb.append(line);
             }
             jsonString = sb.toString();
-            json = new JSONObject(jsonString);
+            json1 = new JSONObject(jsonString);
+
+
+             isr = new InputStreamReader(getResources().openRawResource(R.raw.plu));
+             bufferedReader = new BufferedReader(isr);
+             sb = new StringBuilder();
+            while ((line = bufferedReader.readLine()) != null) {
+                sb.append(line);
+            }
+            jsonString = sb.toString();
+            json2 = new JSONObject(jsonString);
         }
         catch (Exception e){
             e.printStackTrace();
         }
         finally{
             ArrayList<Ingredient> ingredients = new ArrayList<>();
-            Iterator<?> keys = json.keys();
+            ArrayList<Ingredient> ingredients_base = new ArrayList<>();
+            Iterator<?> keys = json1.keys();
 
             while( keys.hasNext() ) {
                 try {
                     String key = (String) keys.next();
-                    if (json.get(key) instanceof JSONObject) {
-                        JSONObject object = json.getJSONObject(key);
+                    if (json1.get(key) instanceof JSONObject) {
+                        JSONObject object = json1.getJSONObject(key);
                         String short_name = null;
                         String long_name = null;
                         if(object.has("short_name"))short_name = object.getString("short_name");
@@ -384,7 +466,27 @@ public class Main_Activity extends AppCompatActivity {
                     e.printStackTrace();
                 }
             }
+            keys = json2.keys();
+            while( keys.hasNext() ) {
+                try {
+                    String key = (String) keys.next();
+                    if (json2.get(key) instanceof JSONObject) {
+                        JSONObject object = json2.getJSONObject(key);
+                        String short_name = null;
+                        String long_name = null;
+                        if(object.has("short_name"))short_name = object.getString("short_name");
+                        if(object.has("long_name"))long_name = object.getString("long_name");
+                        ingredients_base.add(new Ingredient(key,0,short_name,long_name,true));
+                    }
+                }
+                catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+
             Collections.sort(ingredients,new IngredientComparator());
+            Collections.sort(ingredients_base,new IngredientComparator());
+            ingredients.addAll(ingredients_base);
             adapter = new CustomSpinnerAdapter(this,ingredients);
         }
 
@@ -682,7 +784,6 @@ public class Main_Activity extends AppCompatActivity {
         String action = intent.getAction();
         Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
 
-
         if(tag != null){
             SharedPreferences.Editor edit = getSharedPreferences("frigid", Context.MODE_PRIVATE).edit();
             edit.putString("nfc_tag",tag.toString());
@@ -726,8 +827,31 @@ public class Main_Activity extends AppCompatActivity {
         }
         String json = null;
         if(intent.getExtras()!=null){
-            json = intent.getExtras().getString("data");
-            System.out.println(intent.getStringExtra("123456"));
+            if(intent.getExtras().getString("data")!=null) {
+                try {
+                    json = intent.getExtras().getString("data");
+                    AlertDialog.Builder builder = new AlertDialog.Builder(Main_Activity.this);
+                    LayoutInflater inflater = getLayoutInflater();
+                    final View view = inflater.inflate(R.layout.expring_dialog, null);
+                    final ListView list = (ListView) view.findViewById(R.id.list1);
+                    JSONObject jsonObject = new JSONObject(json);
+                    IngredientArrayAdapter adapter = getExpiringAdapter(jsonObject);
+                    list.setAdapter(adapter);
+                    builder.setView(view).setPositiveButton("Okay", new DialogInterface.OnClickListener() {
+
+                        @Override
+                        public void onClick(DialogInterface dialog, int id) {
+
+                        }
+                    });
+                    AlertDialog dialog = builder.create();
+                    dialog.setTitle(Html.fromHtml("<font color='#000000'>Expiring Ingredients (Days Old)</font>"));
+                    dialog.setCanceledOnTouchOutside(false);
+                    dialog.show();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
 
     }
@@ -818,8 +942,7 @@ public class Main_Activity extends AppCompatActivity {
                         if(upcs[i].equals(upc)){
                             if(quantities[i] == -1) quantities[i] = quantities[i] + quantity + 1;
                             else {quantities[i] = quantities[i] + quantity;
-                            System.out.println(quantities[i]);
-                                System.out.println(quantity);}
+                           }
                             changed = true;
                             break;
                         }
@@ -851,6 +974,17 @@ public class Main_Activity extends AppCompatActivity {
 
         return ndefNew;
 
+    }
+
+    protected String listsToNdef(){
+        String s = "";
+        for(Ingredient i: inventory){
+            s += String.format("%s %d\r\n",i.upc,i.quantity);
+        }
+        for(Ingredient i: groceries){
+            s += String.format("%s %d\r\n",i.upc,i.quantity);
+        }
+        return s;
     }
 
     protected String readFile(File file) throws IOException {
