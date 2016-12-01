@@ -27,11 +27,6 @@ def build_json_dict(deviceId, items):
 
     json_dict['to'] = deviceId
     json_data = build_data_dict(items)
-    json_dict['notification'] = {'body': json_data['body'],
-                            'title': "Stuff you're out of",
-                            'sound': 'default',
-                            'icon': 'icon_notification'}
-
     json_dict['data'] = json_data['data']
 
     return json_dict
