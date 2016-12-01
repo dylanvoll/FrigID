@@ -16,7 +16,11 @@ def notify_device():
         return
 
     dict = build_json_dict(notifify_settings['device_id'], items)
-    post_fcm_message(notifify_settings['project_id'], dict)
+    r = post_fcm_message(notifify_settings['project_id'], dict)
+
+    if r.json()['success'] == 1:
+        items = inventory_db_helper.get_items_to_update_after_notify()
+        inventory_db_helper.update_notified_inventory(items)
 
 def build_json_dict(deviceId, items):
     json_dict = {}
@@ -56,6 +60,8 @@ def post_fcm_message(projectId, data):
     r = requests.post('https://fcm.googleapis.com/fcm/send', data=json.dumps(data), headers=headers)
 
     print(r.content)
+
+    return r
 
 
 if __name__ == "__main__":

@@ -132,8 +132,43 @@ def get_inventory_to_notify():
             FROM grocery
               LEFT OUTER JOIN inventory
                 ON grocery.id = inventory.grocery_id
-            WHERE julianday('now') - julianday(inventory.date_purchased) < ({} * 7)
+            WHERE datetime('now') - inventory.date_notified > ({} * 7)
+              AND inventory.notified_count < 3
             GROUP BY name""".format(weeks)
+    rtVal = do_command(cmd)
+
+    if len(rtVal) <= 0:
+        return None
+
+    return rtVal
+
+
+def update_notified_inventory(items):
+
+    for item in items:
+        update_notified_item(item['inventory_id'])
+
+
+def update_notified_item(inventoryId):
+    cmd = "UPDATE inventory SET date_notified = DATETIME('now'), notified_count = notified_count + 1 WHERE inventory.id = ?"
+    do_command(cmd, [inventoryId])
+
+
+def get_items_to_update_after_notify():
+    cmd = "SELECT reminder_weeks FROM notification_settings"
+    rtVal = do_command(cmd)
+
+    if len(rtVal) < 1:
+        return False
+
+    weeks = rtVal[0]['reminder_weeks']
+    cmd = """SELECT
+              inventory.id as inventory_id
+            FROM grocery
+              LEFT OUTER JOIN inventory
+                ON grocery.id = inventory.grocery_id
+            WHERE datetime('now') - inventory.date_notified > ({} * 7)
+              AND inventory.notified_count < 3""".format(weeks)
     rtVal = do_command(cmd)
 
     if len(rtVal) <= 0:
