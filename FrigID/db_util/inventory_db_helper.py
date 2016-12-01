@@ -116,3 +116,27 @@ def get_chantity_changed(upc):
         return rtVal[0]['quantity_changed']
 
     return 0
+
+def get_inventory_to_notify():
+    cmd = "SELECT reminder_weeks FROM notification_settings"
+    rtVal = do_command(cmd)
+
+    if len(rtVal) < 1:
+        return False
+
+    weeks = rtVal[0]['reminder_weeks']
+    cmd = """SELECT
+              upc,
+              name,
+              count(inventory.grocery_id) as count
+            FROM grocery
+              LEFT OUTER JOIN inventory
+                ON grocery.id = inventory.grocery_id
+            WHERE julianday('now') - julianday(inventory.date_purchased) < ({} * 7)
+            GROUP BY name""".format(weeks)
+    rtVal = do_command(cmd)
+
+    if len(rtVal) <= 0:
+        return None
+
+    return rtVal
