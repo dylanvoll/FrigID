@@ -46,8 +46,13 @@ def update_inventory_from_ndef(list):
                 inventory_db_helper.resolve_inventory_count(item['upc'], 0, itemCount)
         else:
             # Check-in item so we have it in the grocery table
-            newItem = ingredient.Ingredient(item['upc'])
-            newItem.check_in(False)
+
+            if len(item['upc']) != 4:
+                newItem = ingredient.Ingredient(item['upc'])
+                newItem.check_in(False)
+            elif len(item['upc']) == 4 and itemCount == 0:
+                newItem = ingredient.Ingredient(item['upc'])
+                grocery_db_helper.grocery_input(newItem.upc, newItem.name)
 
             if itemCount > 1:
                 inventory_db_helper.resolve_inventory_count(item['upc'], 1, itemCount)  # Take care of the rest
