@@ -65,18 +65,19 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     private void sendNotification(RemoteMessage remoteMessage) {
 
         Intent intent = new Intent(this, Main_Activity.class);
+        intent.putExtra("data",new JSONObject(remoteMessage.getData()).toString());
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent,
                 PendingIntent.FLAG_ONE_SHOT);
-        System.out.println(new JSONObject(remoteMessage.getData()).toString());
+        //System.out.println(new JSONObject(remoteMessage.getData()).toString());
         Uri defaultSoundUri= RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
 // this is a my insertion looking for a solution
         int icon = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ? R.drawable.icon_notification: R.mipmap.ic_launcher;
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this)
                 .setSmallIcon(icon)
-                .setContentTitle("Expiring Ingredients Update")
-                .setContentText(remoteMessage.getNotification().getBody())
+                .setContentTitle("FrigID")
+                .setContentText("Click to view your expiring ingredients")
                 .setAutoCancel(true)
                 .setSound(defaultSoundUri)
                 .setVisibility(1)

@@ -85,19 +85,16 @@ public class NFC_Utility {
 
             String result = new String(payload, languageCodeLength + 1, payload.length - languageCodeLength - 1, textEncoding);
 
-            System.out.println(result);
-
             return result.substring(result.indexOf('\n')+1);
         }
 
         @Override
         protected void onPostExecute(String result) {
             try {
-                System.out.println(result);
                     if(result == null || result.isEmpty()){
                         System.out.println("this is null");
                         activity.loadUI();
-                        activity.writeTag(tag,"");
+                        activity.writeTag(tag,activity.listsToNdef());
                     }
                     else {
                         activity.loadUI();
@@ -138,6 +135,7 @@ public class NFC_Utility {
         protected String doInBackground(String... params) {
 
                 JSONObject json;
+                JSONObject json2;
                 if(new File(context.getFilesDir(),"ingredients.json").exists()) {
                     try {
                         String upc = upc_line.split(" ")[0];
@@ -153,12 +151,29 @@ public class NFC_Utility {
                         String myJson = sb.toString();
                         if(myJson.length() != 0) {
                             json = new JSONObject(myJson);
+                            isr = new InputStreamReader(context.getResources().openRawResource(R.raw.plu));
+                            bufferedReader = new BufferedReader(isr);
+                            sb = new StringBuilder();
+                            while ((line = bufferedReader.readLine()) != null) {
+                                sb.append(line);
+                            }
+                            myJson = sb.toString();
+                            json2 = new JSONObject(myJson);
                             if (json.has(upc)) {
                                 if (quantity == 0) {
                                     Ingredient i = new Ingredient(upc, quantity, json.getJSONObject(upc));
                                     this.i = i;
                                 } else {
                                     Ingredient i = new Ingredient(upc, quantity, json.getJSONObject(upc));
+                                    this.i = i;
+                                }
+                            }
+                            else if(json2.has(upc)){
+                                if (quantity == 0) {
+                                    Ingredient i = new Ingredient(upc, quantity, json2.getJSONObject(upc),true);
+                                    this.i = i;
+                                } else {
+                                    Ingredient i = new Ingredient(upc, quantity, json2.getJSONObject(upc),true);
                                     this.i = i;
                                 }
                             }
